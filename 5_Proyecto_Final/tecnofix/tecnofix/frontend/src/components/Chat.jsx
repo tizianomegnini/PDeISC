@@ -17,7 +17,6 @@ export default function Chat({ consultaId, cerrada, onSent }) {
   const toast = useToast();
   const [mensajes, setMensajes] = useState(null);
   const [errorCarga, setErrorCarga] = useState('');
-  const [adjuntosHabilitados, setAdjuntosHabilitados] = useState(true);
   const [texto, setTexto] = useState('');
   const [archivos, setArchivos] = useState([]);
   const [recursos, setRecursos] = useState({});
@@ -36,7 +35,6 @@ export default function Chat({ consultaId, cerrada, onSent }) {
     try {
       const resultado = await consultasApi.mensajes(consultaId);
       setMensajes(resultado.mensajes);
-      setAdjuntosHabilitados(resultado.adjuntos_habilitados !== false);
       setErrorCarga('');
     } catch (error) {
       setErrorCarga(error.message || 'Ocurrió un error inesperado.');
@@ -173,9 +171,7 @@ export default function Chat({ consultaId, cerrada, onSent }) {
       </div>
       {user.rol !== 'admin' && (cerrada ? <p className="chat-closed">Esta consulta ya terminó y la conversación está cerrada.</p> : (
         <>
-          <p className="attachment-help">{adjuntosHabilitados
-            ? 'Podés elegir o tomar una foto JPG, PNG o WEBP de hasta 5 MB. Se conserva temporalmente mientras el servidor siga activo.'
-            : 'El envío de fotos todavía no está habilitado en el servidor. Por ahora podés conversar por mensajes de texto.'}</p>
+          <p className="attachment-help">Podés elegir o tomar una foto JPG, PNG o WEBP de hasta 5 MB. Se conserva temporalmente mientras el servidor siga activo.</p>
           {archivos.length > 0 && <div className="selected-files">{archivos.map((file, indice) => (
             <div className="selected-file" key={`${file.name}-${file.lastModified}-${indice}`}>
               <span aria-hidden="true">{file.type.startsWith('image/') ? '▧' : '▤'}</span>
@@ -187,7 +183,7 @@ export default function Chat({ consultaId, cerrada, onSent }) {
             <input ref={selectorArchivos} className="visually-hidden" id={`adjuntos-${consultaId}`} type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={seleccionarArchivos} />
-            <button type="button" className="chat-attach" onClick={() => selectorArchivos.current?.click()} disabled={!adjuntosHabilitados || enviando || archivos.length >= MAX_FILES} aria-label="Enviar una foto" title={adjuntosHabilitados ? 'Enviar una foto' : 'El envío de fotos no está habilitado'}>
+            <button type="button" className="chat-attach" onClick={() => selectorArchivos.current?.click()} disabled={enviando || archivos.length >= MAX_FILES} aria-label="Enviar una foto" title="Enviar una foto">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 11.1 12 20.5a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></svg>
             </button>
             <label className="visually-hidden" htmlFor={`mensaje-${consultaId}`}>Escribe un mensaje para el técnico</label>
