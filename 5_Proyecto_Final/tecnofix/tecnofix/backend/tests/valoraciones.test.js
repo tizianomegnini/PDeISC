@@ -1,6 +1,10 @@
 import './env-test.js';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
+import { ADJUNTOS_DIR } from '../src/middleware/upload.js';
+import { pool } from '../src/config/db.js';
 import { resetDb, closeDb, registrarCliente, crearTecnico, crearAdmin, login, api, crearConsulta, consultaBody } from './helpers.js';
 
 let cli, otro, tec, tecTok, admTok, c;
@@ -29,6 +33,36 @@ test('mensajes entre cliente y técnico; la respuesta del cliente reactiva "espe
   const m = (await api(cli.token).get(`/consultas/${c.id}/mensajes`)).body.mensajes;
   assert.deepEqual(m.map((x) => x.autor_rol), ['tecnico', 'cliente']);
   assert.equal((await api(cli.token).get(`/consultas/${c.id}`)).body.consulta.estado, 'en_proceso');
+});
+
+test('adjuntos se autorizan por consulta y muestran un aviso cuando el temporal ya no existe', async () => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lO8AAAAASUVORK5CYII=', 'base64');
+  const subida = await api(cli.token).post(`/consultas/${c.id}/mensajes/adjuntos`)
+    .field('contenido', 'Te envío una foto del equipo.')
+    .attach('archivos', png, { filename: 'equipo.png', contentType: 'image/png' });
+  assert.equal(subida.status, 201, JSON.stringify(subida.body));
+
+  const mensajes = (await api(cli.token).get(`/consultas/${c.id}/mensajes`)).body.mensajes;
+  const mensajeFoto = mensajes.find((mensaje) => mensaje.adjuntos?.length);
+  assert.equal(mensajeFoto.contenido, 'Foto enviada');
+  assert.equal(mensajeFoto.adjuntos[0].nombre, 'equipo.png');
+  assert.equal(mensajeFoto.adjuntos[0].disponible, true);
+  assert.equal((await api(otro.token).get(`/consultas/${c.id}/mensajes/adjuntos/${mensajeFoto.adjuntos[0].id}`)).status, 404);
+  assert.equal((await api(cli.token).get(`/consultas/${c.id}/mensajes/adjuntos/${mensajeFoto.adjuntos[0].id}`)).status, 200);
+
+  const [stored] = await pool.execute('SELECT storage_key FROM adjuntos WHERE id=?', [mensajeFoto.adjuntos[0].id]);
+  await unlink(path.join(ADJUNTOS_DIR, stored[0].storage_key));
+  const mensajesLuegoDelReinicio = (await api(cli.token).get(`/consultas/${c.id}/mensajes`)).body.mensajes;
+  const aviso = mensajesLuegoDelReinicio.find((mensaje) => mensaje.id === mensajeFoto.id);
+  assert.equal(aviso.contenido, 'Foto enviada');
+  assert.equal(aviso.adjuntos[0].disponible, false);
+  assert.equal((await api(cli.token).get(`/consultas/${c.id}/mensajes/adjuntos/${mensajeFoto.adjuntos[0].id}`)).status, 410);
+});
+
+test('rechaza adjuntos con extensiones o formatos no permitidos', async () => {
+  const res = await api(cli.token).post(`/consultas/${c.id}/mensajes/adjuntos`)
+    .attach('archivos', Buffer.from('<script>alert(1)</script>'), { filename: 'foto.html', contentType: 'text/html' });
+  assert.equal(res.status, 400);
 });
 
 test('no se puede calificar una consulta que no está finalizada', async () => {
