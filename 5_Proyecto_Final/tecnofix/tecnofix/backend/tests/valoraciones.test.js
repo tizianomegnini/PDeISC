@@ -68,8 +68,11 @@ test('el técnico ve su promedio y trabajos atendidos; el admin ve estadísticas
   assert.equal((await api(admTok).get('/admin/valoraciones')).body.valoraciones.length, 2);
 });
 
-test('validación de consultas: campos obligatorios y descripción mínima', async () => {
-  assert.equal((await api(cli.token).post('/consultas').send(consultaBody({ marca: '' }))).status, 400);
+test('datos del equipo opcionales y descripción obligatoria', async () => {
   assert.equal((await api(cli.token).post('/consultas').send(consultaBody({ descripcion: 'corta' }))).status, 400);
-  assert.equal((await api(cli.token).post('/consultas').send({})).status, 400);
+  const sinDatosEquipo = await api(cli.token).post('/consultas').send({ descripcion: 'No sé qué tipo de equipo es ni cuál es el modelo.' });
+  assert.equal(sinDatosEquipo.status, 201);
+  assert.equal(sinDatosEquipo.body.consulta.tipo_equipo, 'No identificado');
+  assert.equal(sinDatosEquipo.body.consulta.marca, 'No identificado');
+  assert.equal(sinDatosEquipo.body.consulta.modelo, 'No identificado');
 });

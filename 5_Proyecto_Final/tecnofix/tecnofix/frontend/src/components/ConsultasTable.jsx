@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import EstadoBadge from './EstadoBadge.jsx';
-import { fecha, nombreCompleto } from '../utils.js';
+import { equipo, fecha, nombreCompleto } from '../utils.js';
 
 export default function ConsultasTable({ consultas, mostrarCliente = false, mostrarTecnico = true, children }) {
   if (!consultas.length) return <p className="muted">No hay consultas para mostrar.</p>;
@@ -14,7 +14,7 @@ export default function ConsultasTable({ consultas, mostrarCliente = false, most
           {consultas.map((c) => (
             <tr key={c.id}>
               <td>{c.id}</td>
-              <td>{c.tipo_equipo} {c.marca} {c.modelo}</td>
+              <td>{equipo(c)}</td>
               {mostrarCliente && <td>{nombreCompleto(c.cliente_nombre, c.cliente_apellido)}</td>}
               {mostrarTecnico && <td>{c.tecnico_id ? `${nombreCompleto(c.tecnico_nombre, c.tecnico_apellido)} — ${c.local_nombre}` : '—'}</td>}
               <td><EstadoBadge estado={c.estado} /></td>

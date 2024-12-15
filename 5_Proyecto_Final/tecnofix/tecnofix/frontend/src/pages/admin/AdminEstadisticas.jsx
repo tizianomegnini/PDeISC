@@ -26,7 +26,7 @@ export default function AdminEstadisticas() {
               <td>{promedio(t.promedio)} <small className="muted">({t.cantidad_valoraciones})</small></td><td>{t.puntaje_asignacion}</td></tr>))}
           </tbody>
         </table></div>
-        <p className="muted">El puntaje de asignación es un promedio ponderado: quien no tiene valoraciones parte de 4.0, para no quedar excluido.</p>
+        <p className="muted">La asignación prioriza el menor puntaje ponderado para distribuir oportunidades y ayudar a que los técnicos sumen valoraciones. Quien todavía no tiene valoraciones parte de 4.0; los empates se resuelven por menor cantidad de consultas activas.</p>
       </>)}
       <h2>Valoraciones recientes</h2>
       {val.loading ? <Loading /> : val.data && (val.data.valoraciones.length === 0 ? <p className="muted">Todavía no hay valoraciones.</p> : (

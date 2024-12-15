@@ -1,6 +1,7 @@
 # TecnoFix — versión inicial local y funcional
 
 Soporte técnico con tres roles (cliente, técnico, administrador), asignación automática de consultas, mensajes y valoraciones.
+Al crear una consulta, el cliente puede dejar sin completar tipo, marca y modelo; luego puede conversar con el técnico desde el detalle de la consulta una vez asignada.
 **Todo corre en su computadora**: React (Vite) + Express + MySQL local. Sin servicios en la nube.
 
 | Parte | Dirección |
@@ -116,8 +117,8 @@ Cubren: registro/login/JWT/cookies, cambio de contraseña obligatorio, permisos 
 - **Sesión**: JWT (8 h) en **cookie httpOnly**; el JavaScript del navegador nunca lo toca (no hay `localStorage`). Para apps móviles la misma API acepta `Authorization: Bearer` y devuelve el token si se envía `X-Client: mobile`. Las peticiones con cookie que modifican datos exigen `X-Requested-With` (defensa CSRF). En cada llamada se vuelve a leer el usuario en MySQL: si se desactiva o elimina, su token deja de servir.
 - **No hay tabla de refresh tokens**: se usa JWT sin estado (el requisito lo marcaba como opcional).
 - **Estados de una consulta**: `pendiente → asignada → en_proceso ⇄ esperando_cliente → finalizada`, y `cancelada` (la pide el cliente). **Consumen cupo**: `asignada`, `en_proceso`, `esperando_cliente`. No consumen: `pendiente`, `finalizada`, `cancelada`.
-- **Asignación**: en una transacción se bloquean (`SELECT … FOR UPDATE`) los técnicos candidatos en orden de id; así dos altas simultáneas se serializan y nunca superan el límite. Orden: 1) mayor puntaje, 2) menos consultas activas, 3) menor id.
-  Puntaje = promedio bayesiano `(suma de estrellas + 4×5) / (cantidad + 5)`: un técnico sin valoraciones parte de **4.0** y no queda excluido, ni adelanta a quien tiene muy buen historial.
+- **Asignación**: en una transacción se bloquean (`SELECT … FOR UPDATE`) los técnicos candidatos en orden de id; así dos altas simultáneas se serializan y nunca superan el límite. Orden: 1) menor puntaje de valoración, 2) menos consultas activas, 3) menor id.
+  Puntaje = promedio bayesiano `(suma de estrellas + 4×5) / (cantidad + 5)`: un técnico sin valoraciones parte de **4.0**. El orden ascendente favorece primero a técnicos con menor puntaje para que puedan recibir consultas y sumar valoraciones.
   Candidatos: técnico habilitado, usuario activo y no eliminado, local activo.
 - Al **finalizar o cancelar**, al **subir un límite**, **crear/rehabilitar un técnico** o reintentar manualmente, se intentan asignar las pendientes automáticamente (las más antiguas primero).
 - **Desactivar/eliminar un técnico** devuelve sus consultas activas a *pendiente* para reasignarlas. La eliminación es lógica (`deleted_at`): se conserva todo el historial.

@@ -13,6 +13,9 @@ export function parse(schema, data) {
 const texto = (min, max, nombre) =>
   z.string({ required_error: `${nombre} es obligatorio`, invalid_type_error: `${nombre} debe ser texto` })
     .trim().min(min, `${nombre} es obligatorio`).max(max, `${nombre} admite hasta ${max} caracteres`);
+const equipoOpcional = (max) =>
+  z.string({ invalid_type_error: 'El dato del equipo debe ser texto' })
+    .trim().max(max).optional().transform((v) => v || 'No identificado');
 
 export const passwordSchema = z
   .string({ required_error: 'La contraseña es obligatoria' })
@@ -33,8 +36,8 @@ export const schemas = {
   updateProfile: z.object({ nombre: texto(1, 80, 'El nombre'), apellido: texto(1, 80, 'El apellido'), telefono }),
   changePassword: z.object({ actual: z.string().min(1, 'Ingrese su contraseña actual'), nueva: passwordSchema }),
   consulta: z.object({
-    tipo_equipo: texto(2, 60, 'El tipo de equipo'), marca: texto(1, 60, 'La marca'),
-    modelo: texto(1, 80, 'El modelo'), descripcion: texto(10, 2000, 'La descripción'),
+    tipo_equipo: equipoOpcional(60), marca: equipoOpcional(60),
+    modelo: equipoOpcional(80), descripcion: texto(10, 2000, 'La descripción'),
   }),
   estado: z.object({ estado: z.enum(['en_proceso', 'esperando_cliente', 'finalizada', 'cancelada']) }),
   mensaje: z.object({ contenido: texto(1, 2000, 'El mensaje') }),

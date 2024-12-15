@@ -15,13 +15,13 @@ beforeEach(async () => {
   cli = await registrarCliente();
 });
 
-test('se asigna al técnico con mejor valoración promedio', async () => {
+test('se asigna primero al técnico con menor puntaje de valoración', async () => {
   const bajo = await crearTecnico(); const alto = await crearTecnico();
   await setValoraciones(bajo.tecnicoId, [3, 3, 3, 3, 3, 3]);
   await setValoraciones(alto.tecnicoId, [5, 5, 5, 5, 5, 5]);
   const c = await crearConsulta(cli.token);
   assert.equal(c.estado, 'asignada');
-  assert.equal(c.tecnico_id, alto.tecnicoId);
+  assert.equal(c.tecnico_id, bajo.tecnicoId);
   assert.ok(c.local_nombre, 'el cliente ve el local asignado');
   assert.ok(c.tecnico_nombre, 'el cliente ve el técnico asignado');
 });
@@ -34,13 +34,14 @@ test('con igual valoración gana el que tiene menos consultas activas', async ()
   assert.notEqual(c1.tecnico_id, c2.tecnico_id, 'se reparten porque el primero ya tiene una activa');
 });
 
-test('un técnico sin valoraciones no queda excluido: parte de un promedio neutro (4.0)', async () => {
+test('un técnico sin valoraciones parte de un puntaje neutro (4.0)', async () => {
   const nuevo = await crearTecnico(); const malo = await crearTecnico(); const bueno = await crearTecnico();
   await setValoraciones(malo.tecnicoId, [2, 2, 2, 2, 2]);   // puntaje < 4
   await setValoraciones(bueno.tecnicoId, [5, 5, 5, 5, 5]);  // puntaje = 4.5
+  await pool.execute('UPDATE tecnicos SET limite_consultas=1 WHERE id=?', [malo.tecnicoId]);
   const c1 = await crearConsulta(cli.token);
-  assert.equal(c1.tecnico_id, bueno.tecnicoId, 'el de excelente historial va primero');
-  // Con el bueno saturado (límite 1), el nuevo (4.0) pasa por delante del malo (3.0)
+  assert.equal(c1.tecnico_id, malo.tecnicoId, 'quien tiene menor puntaje recibe primero la oportunidad');
+  // Al agotarse el cupo del técnico con menor puntaje, el nuevo (4.0) queda antes que el de 4.5.
   await pool.execute('UPDATE tecnicos SET limite_consultas=1 WHERE id=?', [bueno.tecnicoId]);
   const c2 = await crearConsulta(cli.token);
   assert.equal(c2.tecnico_id, nuevo.tecnicoId);
@@ -114,7 +115,7 @@ test('técnicos deshabilitados, desactivados o de locales inactivos no reciben c
 
 test('desactivar un técnico devuelve sus consultas activas a la cola y las reasigna', async () => {
   const a = await crearTecnico(); const b = await crearTecnico();
-  await setValoraciones(a.tecnicoId, [5, 5, 5, 5]);
+  await setValoraciones(a.tecnicoId, [2, 2, 2, 2]);
   const c = await crearConsulta(cli.token);
   assert.equal(c.tecnico_id, a.tecnicoId);
   await api(admTok).post(`/admin/tecnicos/${a.tecnicoId}/estado`).send({ activo: false }).expect(200);

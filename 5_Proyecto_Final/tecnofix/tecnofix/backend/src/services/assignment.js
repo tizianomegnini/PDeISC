@@ -5,9 +5,8 @@ export const ESTADOS_ACTIVOS = ['asignada', 'en_proceso', 'esperando_cliente'];
 const IN_ACTIVOS = ESTADOS_ACTIVOS.map((e) => `'${e}'`).join(',');
 
 /**
- * Puntaje justo: promedio bayesiano. Un técnico sin valoraciones parte de PRIOR_MEDIA (4.0) y recién
- * se aleja de ahí cuando acumula opiniones; así los nuevos no quedan excluidos ni pasan por delante
- * de técnicos con muy buen historial.
+ * Promedio bayesiano para que pocas valoraciones no distorsionen demasiado el orden de prioridad.
+ * Un técnico sin valoraciones parte de PRIOR_MEDIA (4.0).
  */
 export const PRIOR_MEDIA = 4;
 export const PRIOR_PESO = 5;
@@ -44,7 +43,7 @@ export async function asignarEnConexion(conn, consultaId, actorId = null) {
   const elegibles = cands
     .filter((t) => Number(t.activas) < Number(t.limite_consultas))
     .map((t) => ({ ...t, score: puntaje(t.suma, t.cant) }))
-    .sort((a, b) => b.score - a.score || a.activas - b.activas || a.id - b.id);
+    .sort((a, b) => a.score - b.score || a.activas - b.activas || a.id - b.id);
 
   if (!elegibles.length) return null;
   const elegido = elegibles[0];

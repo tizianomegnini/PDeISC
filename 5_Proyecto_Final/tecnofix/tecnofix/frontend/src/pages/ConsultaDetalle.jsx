@@ -9,7 +9,7 @@ import ErrorBox from '../components/ErrorBox.jsx';
 import EstadoBadge from '../components/EstadoBadge.jsx';
 import Stars from '../components/Stars.jsx';
 import Chat from '../components/Chat.jsx';
-import { fecha, nombreCompleto } from '../utils.js';
+import { equipo, fecha, nombreCompleto } from '../utils.js';
 
 // Debe reflejar las transiciones del backend (backend/src/services/consultas.js). El backend es quien las valida.
 const ACCIONES_TECNICO = {
@@ -54,7 +54,7 @@ export default function ConsultaDetalle() {
         <section className="card">
           <h3>Equipo y problema</h3>
           <dl className="datos">
-            <dt>Equipo</dt><dd>{c.tipo_equipo} — {c.marca} {c.modelo}</dd>
+            <dt>Equipo</dt><dd>{equipo(c)}</dd>
             <dt>Problema</dt><dd style={{ whiteSpace: 'pre-wrap' }}>{c.descripcion}</dd>
             <dt>Creada</dt><dd>{fecha(c.created_at)}</dd>
             {c.finalizada_at && <><dt>Finalizada</dt><dd>{fecha(c.finalizada_at)}</dd></>}
