@@ -54,6 +54,7 @@ export const adminApi = {
   tecnicos: () => get('/admin/tecnicos'),
   crearTecnico: (d) => post('/admin/tecnicos', d),
   editarTecnico: (id, d) => put(`/admin/tecnicos/${id}`, d),
+  restablecerPasswordTecnico: (id, password) => put(`/admin/tecnicos/${id}/password`, { password }),
   estadoTecnico: (id, activo) => post(`/admin/tecnicos/${id}/estado`, { activo }),
   eliminarTecnico: (id) => del(`/admin/tecnicos/${id}`),
   locales: () => get('/admin/locales'),

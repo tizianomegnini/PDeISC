@@ -59,6 +59,7 @@ export const schemas = {
     limite_consultas: z.number().int().min(0).max(1000).optional(),
     habilitado: z.boolean().optional(),
   }),
+  tecnicoPassword: z.object({ password: passwordSchema }),
   local: z.object({
     nombre: texto(2, 100, 'El nombre'), direccion: texto(2, 200, 'La dirección'),
     ciudad: texto(2, 100, 'La ciudad'), telefono, activo: z.boolean().optional(),

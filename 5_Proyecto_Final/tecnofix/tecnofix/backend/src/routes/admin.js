@@ -67,6 +67,25 @@ router.put('/tecnicos/:id', ah(async (req, res) => {
   res.json({ ok: true });
 }));
 
+router.put('/tecnicos/:id/password', ah(async (req, res) => {
+  const id = idParam(req.params.id);
+  const { password } = parse(schemas.tecnicoPassword, req.body);
+  const hash = await bcrypt.hash(password, env.bcryptRounds);
+  await withTransaction(async (conn) => {
+    const [rows] = await conn.execute(
+      'SELECT t.usuario_id FROM tecnicos t JOIN usuarios u ON u.id = t.usuario_id WHERE t.id = ? AND u.deleted_at IS NULL FOR UPDATE',
+      [id],
+    );
+    if (!rows[0]) throw notFound('Técnico no encontrado');
+    await conn.execute(
+      'UPDATE usuarios SET password_hash = ?, debe_cambiar_password = 1 WHERE id = ?',
+      [hash, rows[0].usuario_id],
+    );
+    await audit(conn, req.user.id, 'tecnico.password_restablecida', 'tecnico', id);
+  });
+  res.json({ ok: true });
+}));
+
 // Si un técnico deja de estar disponible, sus consultas activas vuelven a "pendiente" para reasignarse.
 async function liberarConsultas(conn, tecnicoId) {
   await conn.execute(

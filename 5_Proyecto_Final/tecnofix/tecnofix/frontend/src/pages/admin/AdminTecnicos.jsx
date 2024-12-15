@@ -14,13 +14,14 @@ export default function AdminTecnicos() {
   const locales = useFetch(() => adminApi.locales());
   const [form, setForm] = useState(VACIO);
   const [editando, setEditando] = useState(null); // id del técnico en edición
+  const [passwordTemporal, setPasswordTemporal] = useState('');
   const [creds, setCreds] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   const localesActivos = (locales.data?.locales || []).filter((l) => l.activo);
 
-  const editar = (t) => { setEditando(t.id); setCreds(null); setForm({ nombre: t.nombre, apellido: t.apellido, email: t.email, telefono: t.telefono || '', local_id: String(t.local_id), especialidad: t.especialidad || '', limite_consultas: String(t.limite_consultas) }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const cancelar = () => { setEditando(null); setForm(VACIO); };
+  const editar = (t) => { setEditando(t.id); setPasswordTemporal(''); setCreds(null); setForm({ nombre: t.nombre, apellido: t.apellido, email: t.email, telefono: t.telefono || '', local_id: String(t.local_id), especialidad: t.especialidad || '', limite_consultas: String(t.limite_consultas) }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const cancelar = () => { setEditando(null); setPasswordTemporal(''); setForm(VACIO); };
 
   const guardar = async (e) => {
     e.preventDefault(); setOcupado(true);
@@ -38,6 +39,17 @@ export default function AdminTecnicos() {
   const accion = async (fn, msg, confirmar) => {
     if (confirmar && !window.confirm(confirmar)) return;
     try { await fn(); toast.ok(msg); await tecnicos.reload(true); } catch (err) { toast.error(err.message); }
+  };
+  const restablecerPassword = async (e) => {
+    e.preventDefault();
+    if (!editando) return;
+    setOcupado(true);
+    try {
+      await adminApi.restablecerPasswordTecnico(editando, passwordTemporal);
+      setPasswordTemporal('');
+      toast.ok('Contraseña restablecida. El técnico deberá cambiarla al ingresar.');
+    } catch (err) { toast.error(err.message); }
+    finally { setOcupado(false); }
   };
 
   return (
@@ -68,6 +80,16 @@ export default function AdminTecnicos() {
           </div>
         </form>
       </section>
+      {editando && (
+        <section className="card">
+          <h3>Restablecer contraseña</h3>
+          <p className="muted">Definí una contraseña provisoria. El técnico deberá cambiarla al iniciar sesión.</p>
+          <form onSubmit={restablecerPassword} className="row">
+            <label>Contraseña provisoria<input type="password" value={passwordTemporal} onChange={(e) => setPasswordTemporal(e.target.value)} required minLength={8} maxLength={72} pattern="(?=.*[A-Za-z])(?=.*[0-9]).{8,72}" title="Debe tener al menos 8 caracteres, una letra y un número." autoComplete="new-password" /></label>
+            <button disabled={ocupado || !passwordTemporal}>Restablecer contraseña</button>
+          </form>
+        </section>
+      )}
 
       <ErrorBox error={tecnicos.error} onRetry={tecnicos.reload} />
       {tecnicos.loading ? <Loading /> : tecnicos.data && (

@@ -125,6 +125,7 @@ Cubren: registro/login/JWT/cookies, cambio de contraseña obligatorio, permisos 
 - **Eliminar un local** = desactivarlo (tiene técnicos y consultas asociados).
 - **Login social**: la estructura está lista (`/auth/social/:proveedor`, columnas reservadas, variables en `.env.example`) pero **responde 501 “pendiente de configuración”**; no se simula ninguna autenticación.
 - Contraseñas: mínimo 8 caracteres con al menos una letra y un número.
+- El administrador puede restablecer la contraseña de un técnico desde **Técnicos → Editar → Restablecer contraseña**. La nueva clave es provisoria y el técnico debe cambiarla al iniciar sesión.
 
 ## 7. Estructura
 
