@@ -4,9 +4,9 @@ import { useToast } from '../context/ToastContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fecha, nombreCompleto } from '../utils.js';
 
-const MAX_FILES = 5;
+const MAX_FILES = 1;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'];
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const formatSize = (bytes) => bytes < 1024 * 1024
   ? `${Math.max(1, Math.round(bytes / 1024))} KB`
   : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -113,14 +113,14 @@ export default function Chat({ consultaId, cerrada, onSent }) {
     const seleccionados = Array.from(e.target.files || []);
     e.target.value = '';
     if (archivos.length + seleccionados.length > MAX_FILES) {
-      toast.error(`Podés adjuntar hasta ${MAX_FILES} archivos por mensaje.`);
+      toast.error('Podés enviar una foto por mensaje.');
       return;
     }
     const invalido = seleccionados.find((file) => !ACCEPTED_TYPES.includes(file.type) || file.size > MAX_FILE_BYTES);
     if (invalido) {
       toast.error(invalido.size > MAX_FILE_BYTES
         ? `${invalido.name} supera el máximo de 5 MB.`
-        : 'Solo se permiten imágenes JPG, PNG o WEBP, documentos PDF y archivos TXT.');
+        : 'Solo se permiten fotos JPG, PNG o WEBP.');
       return;
     }
     setArchivos((actuales) => [...actuales, ...seleccionados]);
@@ -171,7 +171,7 @@ export default function Chat({ consultaId, cerrada, onSent }) {
       </div>
       {user.rol !== 'admin' && (cerrada ? <p className="chat-closed">Esta consulta ya terminó y la conversación está cerrada.</p> : (
         <>
-          <p className="attachment-help">Podés enviar hasta 5 archivos por mensaje: fotos JPG, PNG o WEBP, PDF o TXT (máximo 5 MB cada uno). Por privacidad, se conservan hasta que se reinicie el servidor; el aviso del mensaje queda en el chat.</p>
+          <p className="attachment-help">Podés elegir o tomar una foto JPG, PNG o WEBP de hasta 5 MB. Se conserva temporalmente mientras el servidor siga activo.</p>
           {archivos.length > 0 && <div className="selected-files">{archivos.map((file, indice) => (
             <div className="selected-file" key={`${file.name}-${file.lastModified}-${indice}`}>
               <span aria-hidden="true">{file.type.startsWith('image/') ? '▧' : '▤'}</span>
@@ -180,10 +180,10 @@ export default function Chat({ consultaId, cerrada, onSent }) {
             </div>
           ))}</div>}
           <form onSubmit={enviar} className="chat-composer">
-            <input ref={selectorArchivos} className="visually-hidden" id={`adjuntos-${consultaId}`} type="file" multiple
-              accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,image/jpeg,image/png,image/webp,application/pdf,text/plain"
+            <input ref={selectorArchivos} className="visually-hidden" id={`adjuntos-${consultaId}`} type="file"
+              accept="image/jpeg,image/png,image/webp"
               onChange={seleccionarArchivos} />
-            <button type="button" className="chat-attach" onClick={() => selectorArchivos.current?.click()} disabled={enviando || archivos.length >= MAX_FILES} aria-label="Adjuntar fotos o archivos" title="Adjuntar fotos o archivos">
+            <button type="button" className="chat-attach" onClick={() => selectorArchivos.current?.click()} disabled={enviando || archivos.length >= MAX_FILES} aria-label="Enviar una foto" title="Enviar una foto">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 11.1 12 20.5a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></svg>
             </button>
             <label className="visually-hidden" htmlFor={`mensaje-${consultaId}`}>Escribe un mensaje para el técnico</label>

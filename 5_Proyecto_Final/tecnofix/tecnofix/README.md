@@ -2,7 +2,7 @@
 
 Soporte técnico con tres roles (cliente, técnico, administrador), asignación automática de consultas, mensajes y valoraciones.
 Al crear una consulta, el cliente puede dejar sin completar tipo, marca y modelo; luego puede conversar con el técnico desde el detalle de la consulta una vez asignada.
-El chat admite fotos JPG/PNG/WEBP y archivos PDF/TXT de hasta 5 MB (máximo cinco por envío). Los archivos se guardan temporalmente durante la ejecución del proceso; si Railway reinicia o cambia de instancia, el chat conserva el aviso “Foto enviada” o “Archivo enviado”, pero no el archivo.
+El chat permite elegir o tomar una foto JPG/PNG/WEBP de hasta 5 MB por mensaje. Las fotos se guardan temporalmente durante la ejecución del proceso; si Railway reinicia o cambia de instancia, el chat conserva el aviso “Foto enviada”, pero no la foto.
 **Todo corre en su computadora**: React (Vite) + Express + MySQL local. Sin servicios en la nube.
 
 | Parte | Dirección |

@@ -22,7 +22,7 @@ function parsear(body, boundary) {
   });
 }
 
-test('parsea mensajes con archivos y sanea el nombre proporcionado', async () => {
+test('parsea mensajes con fotos y sanea el nombre proporcionado', async () => {
   const boundary = 'limite-prueba';
   const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
   const body = Buffer.concat([
@@ -37,16 +37,27 @@ test('parsea mensajes con archivos y sanea el nombre proporcionado', async () =>
   assert.equal(resultado.files[0].categoria, 'foto');
 });
 
-test('rechaza extensiones y contenido que no estén permitidos', async () => {
+test('rechaza documentos y contenido que no sean fotos permitidas', async () => {
   const boundary = 'limite-prueba';
   const body = Buffer.concat([
-    parte(boundary, 'Content-Disposition: form-data; name="archivos"; filename="archivo.html"\r\nContent-Type: text/html', '<script>no</script>'),
+    parte(boundary, 'Content-Disposition: form-data; name="archivos"; filename="documento.pdf"\r\nContent-Type: application/pdf', '%PDF-1.7'),
     Buffer.from(`--${boundary}--\r\n`),
   ]);
   await assert.rejects(parsear(body, boundary), { status: 400 });
 });
 
-test('rechaza archivos que exceden el límite individual', async () => {
+test('rechaza más de una foto por mensaje', async () => {
+  const boundary = 'limite-prueba';
+  const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
+  const body = Buffer.concat([
+    parte(boundary, 'Content-Disposition: form-data; name="archivos"; filename="foto-1.png"\r\nContent-Type: image/png', png),
+    parte(boundary, 'Content-Disposition: form-data; name="archivos"; filename="foto-2.png"\r\nContent-Type: image/png', png),
+    Buffer.from(`--${boundary}--\r\n`),
+  ]);
+  await assert.rejects(parsear(body, boundary), { status: 400 });
+});
+
+test('rechaza fotos que exceden el límite individual', async () => {
   const boundary = 'limite-prueba';
   const png = Buffer.alloc(5 * 1024 * 1024 + 1);
   png.set([137, 80, 78, 71, 13, 10, 26, 10]);

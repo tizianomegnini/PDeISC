@@ -5,8 +5,8 @@ import path from 'node:path';
 import { HttpError } from '../utils/errors.js';
 
 export const MAX_ADJUNTO_BYTES = 5 * 1024 * 1024;
-export const MAX_ADJUNTOS = 5;
-const MAX_REQUEST_BYTES = MAX_ADJUNTO_BYTES * MAX_ADJUNTOS + 256 * 1024;
+export const MAX_ADJUNTOS = 1;
+const MAX_REQUEST_BYTES = MAX_ADJUNTO_BYTES + 256 * 1024;
 export const ADJUNTOS_DIR = path.join(os.tmpdir(), `tecnofix-chat-uploads-${randomUUID()}`);
 
 const TIPOS_PERMITIDOS = new Map([
@@ -14,8 +14,6 @@ const TIPOS_PERMITIDOS = new Map([
   ['.jpeg', 'image/jpeg'],
   ['.png', 'image/png'],
   ['.webp', 'image/webp'],
-  ['.pdf', 'application/pdf'],
-  ['.txt', 'text/plain'],
 ]);
 
 function errorAdjunto(status, message) {
@@ -42,7 +40,7 @@ function validarContenido(file) {
   const extension = path.extname(file.nombreOriginal).toLowerCase();
   const mimeType = TIPOS_PERMITIDOS.get(extension);
   if (!mimeType || file.mimeType !== mimeType) {
-    throw errorAdjunto(400, 'Tipo de archivo no permitido. Enviá una imagen JPG, PNG, WEBP, un PDF o un TXT.');
+    throw errorAdjunto(400, 'Formato de foto no permitido. Enviá una imagen JPG, PNG o WEBP.');
   }
   const bytes = file.buffer;
   const valido = mimeType === 'image/jpeg'
@@ -51,22 +49,10 @@ function validarContenido(file) {
       ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
       : mimeType === 'image/webp'
         ? bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
-        : mimeType === 'application/pdf'
-          ? bytes.subarray(0, 5).toString('ascii') === '%PDF-'
-          : validarTexto(bytes);
+        : false;
   if (!valido) throw errorAdjunto(400, 'El archivo no coincide con su formato o está dañado.');
-  file.categoria = mimeType.startsWith('image/') ? 'foto' : 'archivo';
+  file.categoria = 'foto';
   file.storageKey = randomUUID();
-}
-
-function validarTexto(bytes) {
-  if (bytes.includes(0)) return false;
-  try {
-    new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function parseMultipart(body, boundary) {
@@ -96,7 +82,7 @@ function parseMultipart(body, boundary) {
     if (filename !== null) {
       if (field !== 'archivos') throw errorAdjunto(400, 'Campo de archivo desconocido.');
       if (!filename) throw errorAdjunto(400, 'Seleccioná un archivo válido.');
-      if (files.length >= MAX_ADJUNTOS) throw errorAdjunto(400, `Podés enviar hasta ${MAX_ADJUNTOS} archivos por mensaje.`);
+      if (files.length >= MAX_ADJUNTOS) throw errorAdjunto(400, 'Podés enviar una foto por mensaje.');
       if (data.length > MAX_ADJUNTO_BYTES) throw errorAdjunto(413, 'Cada archivo debe pesar como máximo 5 MB.');
       const nombreOriginal = path.basename(filename.replace(/\\/g, '/'))
         .replace(/[\u0000-\u001f\u007f]/g, '')
@@ -144,7 +130,7 @@ export function parseAdjuntos(req, _res, next) {
       terminado = true;
       chunks.length = 0;
       req.resume();
-      next(errorAdjunto(413, 'El envío supera el tamaño permitido. Enviá hasta 5 archivos de 5 MB cada uno.'));
+      next(errorAdjunto(413, 'La foto supera el tamaño permitido de 5 MB.'));
       return;
     }
     chunks.push(chunk);
