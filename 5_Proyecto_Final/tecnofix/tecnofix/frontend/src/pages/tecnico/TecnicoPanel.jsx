@@ -31,7 +31,7 @@ export default function TecnicoPanel() {
         </div>
       )}
       <div className="section-heading">
-        <div><span className="eyebrow">TRABAJO EN CURSO</span><h2>Consultas asignadas <span className="count-pill">{activas}</span></h2></div>
+        <div><span className="eyebrow">TRABAJO EN CURSO</span><h2>Consultas asignadas <span className="count-pill">{activas}</span></h2><p className="muted section-hint">Abrí una consulta para leer el caso, responder mensajes y actualizar su estado.</p></div>
         <button className="btn btn-outline-secondary" onClick={() => { lista.reload(); resumen.reload(); }}>Actualizar</button>
       </div>
       {lista.loading ? <Loading /> : lista.data && <ConsultasTable consultas={lista.data.consultas} mostrarCliente mostrarTecnico={false} />}

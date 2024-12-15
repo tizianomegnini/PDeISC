@@ -28,7 +28,7 @@ export default function AdminResumen() {
         <div>
           <span className="eyebrow">CENTRO DE CONTROL</span>
           <h1>Resumen de operaciones</h1>
-          <p>Una vista general del servicio, los equipos y la red de atención.</p>
+          <p>Una vista general del servicio, los equipos y la red de atención. Usá el menú superior para revisar consultas pendientes, administrar técnicos y locales o consultar las estadísticas.</p>
         </div>
         <span className="admin-status"><span /> SISTEMA OPERATIVO</span>
       </section>

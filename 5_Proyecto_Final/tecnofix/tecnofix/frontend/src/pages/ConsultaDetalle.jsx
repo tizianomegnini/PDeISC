@@ -17,6 +17,14 @@ const ACCIONES_TECNICO = {
   en_proceso: [['esperando_cliente', 'Esperar respuesta del cliente'], ['finalizada', 'Finalizar']],
   esperando_cliente: [['en_proceso', 'Retomar atención'], ['finalizada', 'Finalizar']],
 };
+const AYUDA_ESTADO = {
+  pendiente: 'Estamos buscando un técnico con lugar disponible. No hace falta crear otra consulta; te avisaremos acá cuando se asigne.',
+  asignada: 'Un técnico ya recibió tu caso. Podés escribirle abajo para contar más detalles o responder sus preguntas.',
+  en_proceso: 'El técnico está atendiendo tu caso. Podés seguir la conversación desde los mensajes.',
+  esperando_cliente: 'El técnico necesita una respuesta tuya para continuar. Contestale desde los mensajes.',
+  finalizada: 'La atención terminó. Si el problema se resolvió, podés dejar una valoración para ayudar a otras personas.',
+  cancelada: 'Esta consulta fue cancelada y ya no admite nuevos mensajes.',
+};
 
 export default function ConsultaDetalle() {
   const { id } = useParams();
@@ -50,6 +58,10 @@ export default function ConsultaDetalle() {
     <>
       <p><Link to={user.rol === 'cliente' ? '/consultas' : user.rol === 'tecnico' ? '/tecnico' : '/admin/pendientes'}>← Volver</Link></p>
       <h1>Consulta #{c.id} <EstadoBadge estado={c.estado} /></h1>
+      {user.rol === 'cliente' && <>
+        <p className="page-guidance">Acá podés seguir el caso y escribirle al técnico. Los mensajes nuevos aparecen automáticamente cada unos segundos.</p>
+        <div className="status-guide"><strong>¿Qué significa este estado?</strong><span>{AYUDA_ESTADO[c.estado]}</span></div>
+      </>}
       <div className="two-col">
         <section className="card">
           <h3>Equipo y problema</h3>
@@ -76,8 +88,6 @@ export default function ConsultaDetalle() {
           {user.rol === 'cliente' && !cerrada && <button className="danger" style={{ marginTop: '.8rem' }} disabled={ocupado} onClick={() => cambiar('cancelada')}>Cancelar consulta</button>}
         </section>
       </div>
-
-      {c.estado === 'pendiente' && <div className="alert warn">Todavía no hay un técnico con cupo disponible. Su consulta se asignará automáticamente apenas se libere uno.</div>}
 
       {c.estado === 'finalizada' && (
         <section className="card">

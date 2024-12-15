@@ -22,16 +22,29 @@ export default function NuevaConsulta() {
     } catch (err) { setError(err.message); } finally { setEnviando(false); }
   };
   return (
-    <div className="card" style={{ maxWidth: 620 }}>
-      <h1>Nueva consulta de soporte</h1>
-      <form onSubmit={enviar} className="stack">
-        <p className="muted">¿No conocés el tipo, la marca o el modelo? Podés dejar esos datos vacíos. Cuando un técnico tome la consulta, vas a poder hablar con él desde el detalle.</p>
-        <label>Tipo de equipo (opcional)<select value={form.tipo_equipo} onChange={set('tipo_equipo')}><option value="">No sé qué equipo tengo</option>{TIPOS.map((t) => <option key={t}>{t}</option>)}</select></label>
-        <label>Marca (opcional)<input value={form.marca} onChange={set('marca')} maxLength={60} /></label>
-        <label>Modelo (opcional)<input value={form.modelo} onChange={set('modelo')} maxLength={80} /></label>
-        <label>Descripción del problema (mínimo 10 caracteres)<textarea value={form.descripcion} onChange={set('descripcion')} required minLength={10} maxLength={2000} /></label>
+    <div className="card form-card">
+      <div className="form-intro">
+        <span className="eyebrow">PEDIR AYUDA</span>
+        <h1>Nueva consulta de soporte</h1>
+        <p>Contanos qué le pasa a tu equipo. Un técnico revisará el caso y te ayudará paso a paso.</p>
+      </div>
+      <div className="how-it-works" aria-label="Cómo funciona la consulta">
+        <div><span>1</span><p><strong>Contanos el problema</strong><small>Con tus palabras, sin tecnicismos.</small></p></div>
+        <div><span>2</span><p><strong>Te asignamos un técnico</strong><small>Vas a ver su respuesta acá.</small></p></div>
+        <div><span>3</span><p><strong>Conversá por mensajes</strong><small>Todo queda en el detalle del caso.</small></p></div>
+      </div>
+      <form onSubmit={enviar} className="stack consultation-form">
+        <div className="form-section-title"><h2>Sobre tu equipo <small>(opcional)</small></h2><p>Si no sabés estos datos, dejalos sin completar. El técnico puede ayudarte a identificarlos.</p></div>
+        <label>¿Qué tipo de equipo es?<select value={form.tipo_equipo} onChange={set('tipo_equipo')}><option value="">No estoy seguro/a</option>{TIPOS.map((t) => <option key={t}>{t}</option>)}</select></label>
+        <div className="form-grid">
+          <label>Marca<input value={form.marca} onChange={set('marca')} maxLength={60} placeholder="Por ejemplo: Samsung" /></label>
+          <label>Modelo<input value={form.modelo} onChange={set('modelo')} maxLength={80} placeholder="Si lo conocés" /></label>
+        </div>
+        <div className="form-section-title"><h2>¿Qué problema tiene?</h2><p>Decinos cuándo empezó y qué estabas intentando hacer. Evitá incluir contraseñas o datos privados.</p></div>
+        <label className="description-field">Descripción del problema<textarea value={form.descripcion} onChange={set('descripcion')} required minLength={10} maxLength={2000} placeholder="Ejemplo: Desde ayer el celular se apaga aunque todavía tiene batería. Ya probé cargarlo y sigue pasando." /></label>
+        <small className="field-hint">Escribí al menos 10 caracteres. Podés agregar más detalles después en los mensajes.</small>
         {error && <div className="alert error" role="alert">{error}</div>}
-        <button disabled={enviando}>{enviando ? 'Enviando…' : 'Enviar consulta'}</button>
+        <button className="form-submit" disabled={enviando}>{enviando ? 'Enviando…' : 'Crear consulta'}</button>
       </form>
     </div>
   );

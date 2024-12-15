@@ -27,23 +27,33 @@ export default function Chat({ consultaId, cerrada, onSent }) {
   };
 
   return (
-    <section className="card">
-      <h3>Mensajes</h3>
+    <section className="card chat-panel">
+      <header className="chat-heading">
+        <div>
+          <span className="eyebrow">CONVERSACIÓN</span>
+          <h3>Mensajes de la consulta</h3>
+          <p>Escribí como en un chat. Si podés, contá qué estabas haciendo cuando apareció el problema. Los mensajes se actualizan automáticamente cada unos segundos.</p>
+        </div>
+        <span className="chat-live" aria-label="Mensajes actualizados automáticamente"><span /> Actualización automática</span>
+      </header>
       <div className="chat">
         {mensajes === null && <p className="loading">Cargando mensajes…</p>}
-        {mensajes?.length === 0 && <p className="muted">Todavía no hay mensajes.</p>}
+        {mensajes?.length === 0 && <div className="chat-empty"><span aria-hidden="true">✉</span><strong>La conversación empieza acá</strong><p>Mandale un mensaje al técnico si querés agregar detalles o hacer una pregunta.</p></div>}
         {mensajes?.map((m) => (
           <div key={m.id} className={`msg ${m.autor_id === user.id ? 'mine' : ''}`}>
-            <small>{nombreCompleto(m.autor_nombre, m.autor_apellido)} · {m.autor_rol} · {fecha(m.created_at)}</small>
+            <small>{nombreCompleto(m.autor_nombre, m.autor_apellido)} · {fecha(m.created_at)}</small>
             <p>{m.contenido}</p>
           </div>
         ))}
         <div ref={fin} />
       </div>
-      {user.rol !== 'admin' && (cerrada ? <p className="muted">La consulta está cerrada: no admite más mensajes.</p> : (
-        <form onSubmit={enviar} className="row">
-          <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escriba un mensaje" maxLength={2000} aria-label="Mensaje" />
-          <button disabled={enviando || !texto.trim()}>{enviando ? 'Enviando…' : 'Enviar'}</button>
+      {user.rol !== 'admin' && (cerrada ? <p className="chat-closed">Esta consulta ya terminó y la conversación está cerrada.</p> : (
+        <form onSubmit={enviar} className="chat-composer">
+          <label className="visually-hidden" htmlFor={`mensaje-${consultaId}`}>Escribe un mensaje para el técnico</label>
+          <input id={`mensaje-${consultaId}`} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escribí tu mensaje…" maxLength={2000} />
+          <button className="chat-send" disabled={enviando || !texto.trim()} aria-label={enviando ? 'Enviando mensaje' : 'Enviar mensaje'}>
+            {enviando ? '…' : <><span aria-hidden="true">➤</span><span className="chat-send-label">Enviar</span></>}
+          </button>
         </form>
       ))}
     </section>

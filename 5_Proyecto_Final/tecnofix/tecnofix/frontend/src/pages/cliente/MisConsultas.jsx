@@ -16,7 +16,7 @@ export default function MisConsultas() {
         <div>
           <span className="eyebrow">ESPACIO CLIENTE</span>
           <h1>Tu soporte, en un solo lugar</h1>
-          <p>Creá una consulta, seguí el estado de tu equipo y mantené el contacto con el técnico.</p>
+          <p>Creá una consulta, seguí el estado de tu equipo y mantené el contacto con el técnico. Abrí cualquier caso para ver los mensajes y conocer qué hacer a continuación.</p>
         </div>
         <div className="hero-actions">
           <button className="btn btn-outline-secondary" onClick={() => reload()}>Actualizar</button>
@@ -34,7 +34,14 @@ export default function MisConsultas() {
         <div><span className="eyebrow">SEGUIMIENTO</span><h2>Mis consultas</h2></div>
       </div>
       <ErrorBox error={error} onRetry={reload} />
-      {loading ? <Loading /> : data && <ConsultasTable consultas={data.consultas} />}
+      {loading ? <Loading /> : data && (data.consultas.length
+        ? <ConsultasTable consultas={data.consultas} />
+        : <section className="card empty-state">
+          <span className="empty-icon" aria-hidden="true">⌕</span>
+          <h3>Todavía no tenés consultas</h3>
+          <p>Cuando necesites ayuda con un equipo, contanos qué está pasando. No hace falta que sepas el modelo.</p>
+          <Link className="btn btn-primary" to="/consultas/nueva">Crear mi primera consulta</Link>
+        </section>)}
     </>
   );
 }
