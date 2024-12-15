@@ -74,9 +74,16 @@ router.get('/:id/mensajes', ah(async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT m.id, m.consulta_id, m.autor_id, m.contenido, m.created_at, u.nombre AS autor_nombre, u.apellido AS autor_apellido, u.rol AS autor_rol
        FROM mensajes m JOIN usuarios u ON u.id = m.autor_id WHERE m.consulta_id = ? ORDER BY m.id`, [id]);
-  const [adjuntos] = await pool.execute(
-    `SELECT id, mensaje_id, nombre_original, mime_type, tamanio, storage_key
-       FROM adjuntos WHERE consulta_id = ? ORDER BY id`, [id]);
+  let adjuntos = [];
+  let adjuntosHabilitados = true;
+  try {
+    [adjuntos] = await pool.execute(
+      `SELECT id, mensaje_id, nombre_original, mime_type, tamanio, storage_key
+         FROM adjuntos WHERE consulta_id = ? ORDER BY id`, [id]);
+  } catch (error) {
+    if (error.code !== 'ER_NO_SUCH_TABLE') throw error;
+    adjuntosHabilitados = false;
+  }
   const porMensaje = new Map();
   await Promise.all(adjuntos.map(async (adjunto) => {
     const lista = porMensaje.get(adjunto.mensaje_id) || [];
@@ -91,7 +98,7 @@ router.get('/:id/mensajes', ah(async (req, res) => {
     porMensaje.set(adjunto.mensaje_id, lista);
   }));
   for (const mensaje of rows) mensaje.adjuntos = porMensaje.get(mensaje.id) || [];
-  res.json({ mensajes: rows });
+  res.json({ mensajes: rows, adjuntos_habilitados: adjuntosHabilitados });
 }));
 
 router.get('/:id/mensajes/adjuntos/:adjuntoId', ah(async (req, res) => {
@@ -177,6 +184,9 @@ router.post('/:id/mensajes/adjuntos', requireRole('cliente', 'tecnico'), parseAd
     });
   } catch (error) {
     await eliminarAdjuntosTemporales(guardados);
+    if (error.code === 'ER_NO_SUCH_TABLE' && error.message?.includes('adjuntos')) {
+      throw new HttpError(503, 'El envío de fotos todavía no está habilitado. Falta crear la tabla adjuntos en la base de datos.');
+    }
     throw error;
   }
   res.status(201).json({ ok: true });
