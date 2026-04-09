@@ -27,7 +27,8 @@
 <!-- IMPORTANTE: type="module" -->
 <script type="module">
     import { suma, resta, multiplicacion, division } from "./calculos.js";
-
+    
+    /** Utiliza las funciones ya creadas en calculos.js */
     const operaciones = [
         { op: "4 + 5", res: suma(4, 5) },
         { op: "3 - 6", res: resta(3, 6) },
@@ -37,6 +38,7 @@
 
     const tabla = document.getElementById("tabla");
 
+    /** Recorre las operaciones y agrega filas a la tabla */
     operaciones.forEach(o => {
         tabla.innerHTML += `
             <tr>
