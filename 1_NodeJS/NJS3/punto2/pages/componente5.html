@@ -1,0 +1,15 @@
+<body class="bg-dark text-white text-center p-5">
+
+    <div id="caja" class="bg-info" style="width:100px;height:100px;margin:auto;"></div>
+
+    <button class="btn btn-info mt-3" onclick="mover()">Mover</button>
+
+    <script>
+        function mover() {
+            let caja = document.getElementById("caja");
+            caja.style.transform = "translateX(200px)";
+            caja.style.transition = "1s";
+        }
+    </script>
+
+</body>

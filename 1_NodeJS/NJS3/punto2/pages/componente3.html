@@ -1,0 +1,10 @@
+<body class="bg-dark text-white text-center p-5">
+    <h2>Presioná una tecla</h2>
+    <p id="tecla"></p>
+
+    <script>
+        document.addEventListener("keydown", (e) => {
+            document.getElementById("tecla").innerText = e.key;
+        });
+    </script>
+</body>

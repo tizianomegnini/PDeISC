@@ -1,0 +1,13 @@
+<body class="bg-dark text-white text-center p-5">
+
+    <input type="text" class="form-control" placeholder="Escribí..." oninput="mostrar(this.value)">
+
+    <h2 id="resultado"></h2>
+
+    <script>
+        function mostrar(valor) {
+            document.getElementById("resultado").innerText = valor;
+        }
+    </script>
+
+</body>

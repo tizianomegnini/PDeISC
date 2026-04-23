@@ -1,0 +1,19 @@
+<body class="bg-dark text-white text-center p-5">
+    <h2 id="texto">Pasá el mouse</h2>
+
+    <div class="btn btn-warning"
+        onmouseover="over()"
+        onmouseout="out()">
+        Hover acá
+    </div>
+
+    <script>
+        function over() {
+            document.getElementById("texto").innerText = "MOUSE ENCIMA";
+        }
+
+        function out() {
+            document.getElementById("texto").innerText = "MOUSE FUERA";
+        }
+    </script>
+</body>
