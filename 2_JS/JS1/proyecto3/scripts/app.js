@@ -1,8 +1,3 @@
-/**
- * APP DE GESTIÓN INTERNA - EMPRESA X
- * Lógica responsiva y validaciones estrictas.
- */
-
 const DB_KEY = "db_empresa_x_final";
 let empleados = JSON.parse(localStorage.getItem(DB_KEY)) || [];
 
