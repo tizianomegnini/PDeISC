@@ -1,149 +1,97 @@
 const form = document.getElementById("form");
+const contenedor = document.getElementById("contenedor");
+const totalMsg = document.getElementById("totalMsg");
 
-// Inputs
-const soloTexto = ["nombre", "apellido"];
-const soloNumeros = ["dni", "telefono", "cbu"];
+// 1. EL ARRAY (Almacenaje principal solicitado)
+let productos = JSON.parse(localStorage.getItem("db_sport")) || [];
 
-function bloquearTexto(e) {
-  const tecla = e.key;
-  const especiales = ["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"];
-
-  if (especiales.includes(tecla)) return;
-
-  if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ ]$/.test(tecla)) {
-    e.preventDefault();
-  }
-}
-
-function bloquearNumero(e) {
-  const tecla = e.key;
-  const especiales = ["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"];
-
-  if (especiales.includes(tecla)) return;
-
-  if (!/^[0-9]$/.test(tecla)) {
-    e.preventDefault();
-  }
-}
-
-// Aplicar
-soloTexto.forEach(id => {
-  document.getElementById(id).addEventListener("keydown", bloquearTexto);
+// 🔥 VALIDACIÓN EN TIEMPO REAL
+form.querySelectorAll("input, textarea").forEach(input => {
+    input.addEventListener("input", () => {
+        if (input.checkValidity()) {
+            input.classList.remove("is-invalid");
+            input.classList.add("is-valid");
+        } else {
+            input.classList.remove("is-valid");
+            input.classList.add("is-invalid");
+        }
+    });
 });
 
-soloNumeros.forEach(id => {
-  document.getElementById(id).addEventListener("keydown", bloquearNumero);
-});
-
-document.querySelectorAll("input").forEach(input => {
-  input.addEventListener("paste", e => {
-    const texto = (e.clipboardData || window.clipboardData).getData("text");
-
-    if (["nombre", "apellido"].includes(input.id)) {
-      if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ ]+$/.test(texto)) e.preventDefault();
-    }
-
-    if (["dni", "telefono", "cbu"].includes(input.id)) {
-      if (!/^[0-9]+$/.test(texto)) e.preventDefault();
-    }
-
-    // email permitido libremente
-  });
-});
-
-const emailInput = document.getElementById("email");
-
-emailInput.addEventListener("input", () => {
-  const regex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail)\.com$/;
-
-  if (regex.test(emailInput.value)) {
-    emailInput.setCustomValidity("");
-  } else {
-    emailInput.setCustomValidity("Email inválido");
-  }
-});
-
-// VALIDACIÓN VISUAL
-form.querySelectorAll("input, select").forEach(input => {
-  input.addEventListener("input", () => {
-    if (input.checkValidity()) {
-      input.classList.add("is-valid");
-      input.classList.remove("is-invalid");
-    } else {
-      input.classList.add("is-invalid");
-      input.classList.remove("is-valid");
-    }
-  });
-});
-
-// SUBMIT
+// Manejo del envío
 form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!form.checkValidity()) {
-    form.classList.add("was-validated");
-    return;
-  }
+    if (!form.checkValidity()) {
+        form.classList.add("was-validated");
+        return;
+    }
 
-  // 🔥 3 FORMAS
-  const nombre = document.getElementById("nombre").value;
-  const data = new FormData(form);
-  const apellido = data.get("apellido");
-  const email = document.querySelector("#email").value;
+    const data = new FormData(form);
+    const nuevoProducto = Object.fromEntries(data.entries());
+    nuevoProducto.codigo = nuevoProducto.codigo.toUpperCase();
 
-  // 🔥 evitar duplicado CBU
-  const resCheck = await fetch("/usuarios");
-  const usuarios = await resCheck.json();
+    // Evitar duplicados por SKU
+    if (productos.some(p => p.codigo === nuevoProducto.codigo)) {
+        alert("⚠️ Este código ya está registrado.");
+        return;
+    }
 
-  if (usuarios.some(u => u.cbu === data.get("cbu"))) {
-    alert("Ese CBU ya está registrado");
-    return;
-  }
+    // --- MÉTODOS DE ALMACENAJE ---
+    
+    // A. Agregar al Array (Memoria volátil)
+    productos.push(nuevoProducto);
+    
+    // B. LocalStorage (Persistencia en el navegador)
+    localStorage.setItem("db_sport", JSON.stringify(productos));
 
-  const usuario = {
-    nombre: nombre.trim(),
-    apellido: apellido.trim(),
-    dni: data.get("dni"),
-    email: email.trim(),
-    telefono: data.get("telefono"),
-    tipo: data.get("tipo"),
-    cbu: data.get("cbu"),
-    monto: data.get("monto")
-  };
+    // C. Envío al Servidor (Persistencia remota)
+    try {
+        await fetch("/api/guardar", {
+            method: "POST",
+            body: JSON.stringify(nuevoProducto)
+        });
+    } catch (err) {
+        console.warn("Servidor no disponible, guardado solo localmente.");
+    }
 
-  await fetch("/agregar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(usuario)
-  });
-
-  form.reset();
-  form.querySelectorAll("input, select").forEach(i => i.classList.remove("is-valid"));
-
-  cargarUsuarios();
+    // Resetear formulario y estilos de validación
+    form.reset();
+    form.classList.remove("was-validated");
+    form.querySelectorAll(".is-valid").forEach(i => i.classList.remove("is-valid"));
+    
+    render();
 });
 
-// MOSTRAR
-async function cargarUsuarios() {
-  const res = await fetch("/usuarios");
-  const data = await res.json();
+// Función para mostrar los datos del Array en el HTML
+function render() {
+    contenedor.innerHTML = "";
+    totalMsg.innerText = `${productos.length} Items`;
 
-  const lista = document.getElementById("lista");
-  lista.innerHTML = "";
-
-  data.forEach(u => {
-    const montoFormateado = Number(u.monto).toLocaleString("es-AR");
-
-    lista.innerHTML += `
-      <li class="list-group-item">
-        <strong>${u.nombre} ${u.apellido}</strong><br>
-        DNI: ${u.dni} | Tipo: ${u.tipo}<br>
-        $${montoFormateado} | Tel: ${u.telefono}<br>
-        Mail: ${u.email} <br>
-        CBU: ${u.cbu}
-      </li>
-    `;
-  });
+    productos.forEach(p => {
+        contenedor.innerHTML += `
+            <div class="col-md-6">
+                <div class="card prod-card h-100 bg-dark shadow-sm border-secondary">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="m-0 fw-bold text-white">${p.nombre}</h6>
+                            <span class="badge bg-dark-subtle text-success border border-success small">${p.codigo}</span>
+                        </div>
+                        <p class="text-secondary mb-3" style="font-size: 0.85rem;">${p.marca} | ${p.categoria}</p>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div>
+                                <span class="text-white fw-bold fs-5">$${Number(p.precio).toLocaleString()}</span>
+                                <div class="text-secondary small mt-1">Stock: ${p.stock} un.</div>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">${p.fecha}</small>
+                        </div>
+                        <hr class="text-secondary opacity-25">
+                        <p class="small text-secondary mb-0 text-truncate">${p.descripcion}</p>
+                    </div>
+                </div>
+            </div>`;
+    });
 }
 
-cargarUsuarios();
+// Carga inicial al abrir la página
+render();

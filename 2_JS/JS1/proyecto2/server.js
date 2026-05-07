@@ -1,54 +1,38 @@
 import http from "http";
 import fs from "fs";
 
-let usuarios = [];
+let productos = []; 
 
 const server = http.createServer((req, res) => {
+  const url = req.url;
+  const method = req.method;
 
-  // HTML
-  if (req.url === "/") {
-    fs.readFile("./pag/index.html", (err, data) => {
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(data);
+  if (method === "GET") {
+    let filePath = url === "/" ? "./pag/index.html" : `.${url}`;
+    let contentType = url.endsWith(".js") ? "application/javascript" : "text/html";
+
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        res.end("No encontrado");
+      } else {
+        res.writeHead(200, { "Content-Type": `${contentType}; charset=utf-8` });
+        res.end(data);
+      }
     });
     return;
   }
 
-  // JS
-  if (req.url === "/app.js") {
-    fs.readFile("./scripts/app.js", (err, data) => {
-      res.writeHead(200, { "Content-Type": "application/javascript" });
-      res.end(data);
-    });
-    return;
-  }
-
-  // POST
-  if (req.url === "/agregar" && req.method === "POST") {
+  if (url === "/api/guardar" && method === "POST") {
     let body = "";
-
     req.on("data", chunk => body += chunk);
-
     req.on("end", () => {
-      const usuario = JSON.parse(body);
-      usuarios.push(usuario);
-
-      res.writeHead(200);
-      res.end("OK");
+      productos.push(JSON.parse(body));
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
     });
-
     return;
   }
-
-  // GET usuarios
-  if (req.url === "/usuarios") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(usuarios));
-    return;
-  }
-
 });
 
-server.listen(3000, () => {
-  console.log("http://localhost:3000");
-});
+server.listen(3000, () => console.log("🚀 http://localhost:3000"));
