@@ -5,7 +5,7 @@ const totalMsg = document.getElementById("totalMsg");
 // 1. EL ARRAY (Almacenaje principal solicitado)
 let productos = JSON.parse(localStorage.getItem("db_sport")) || [];
 
-// 🔥 VALIDACIÓN EN TIEMPO REAL
+//  VALIDACIÓN EN TIEMPO REAL
 form.querySelectorAll("input, textarea").forEach(input => {
     input.addEventListener("input", () => {
         if (input.checkValidity()) {
