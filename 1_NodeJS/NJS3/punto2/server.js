@@ -1,6 +1,6 @@
-import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 const PORT = 3000;
@@ -8,12 +8,16 @@ const PORT = 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(__dirname));
+// Servir carpetas estáticas mapeando la estructura exacta
+app.use('/pages', express.static(path.join(__dirname, 'pages')));
+app.use('/scripts', express.static(path.join(__dirname, 'scripts')));
+app.use('/styles', express.static(path.join(__dirname, 'styles')));
 
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "/pages/menu.html"));
+// Ruta principal apunta a menu.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'menu.html'));
 });
 
 app.listen(PORT, () => {
-    console.log(`http://localhost:${PORT}`);
+    console.log(`Servidor corriendo en: http://localhost:${PORT}`);
 });
