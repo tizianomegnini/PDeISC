@@ -1,0 +1,30 @@
+/* general */
+body {
+    font-family: Arial;
+    background: #111;
+    color: white;
+    display: flex;
+    justify-content: center;
+    padding: 50px;
+}
+
+/* contenedor */
+.container {
+    width: 400px;
+}
+
+/* tabla */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #444;
+    text-align: center;
+}
+
+th {
+    background: #333;
+}
