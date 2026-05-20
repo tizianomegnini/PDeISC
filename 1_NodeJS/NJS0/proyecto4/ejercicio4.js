@@ -1,4 +1,4 @@
-import { suma, resta, multiplicacion, division } from '../../scripts/calculo.js';
+import { suma, resta, multiplicacion, division } from './calculo.js';
 
 console.log("Suma:", suma(5, 3));
 console.log("Resta:", resta(8, 6));
