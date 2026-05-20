@@ -2,12 +2,10 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
-/* TABLA MÁS LINDA */
 table {
     font-size: 0.95rem;
 }
 
-/* MOBILE MEJORADO */
 @media (max-width: 576px) {
     h1 {
         font-size: 1.5rem;
@@ -18,7 +16,6 @@ table {
     }
 }
 
-/* BOTÓN VOLVER ARRIBA */
 #btnTop {
     position: fixed;
     bottom: 15px;
