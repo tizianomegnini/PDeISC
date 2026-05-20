@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
-    // 🔄 NAVEGACIÓN POR MENÚ DESPLEGABLE (MÓVIL)
+    // 🔄 NAVEGACIÓN POR SELECTOR NATIVO (MÓVIL)
     // ==========================================
     const selector = document.getElementById('component-selector');
     if (selector) {
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 🌗 MODO OSCURO NATIVO (PARA AMBOS BOTONES)
+    // 🌗 MODO OSCURO NATIVO
     // ==========================================
     const themeToggleBtns = document.querySelectorAll('.theme-toggle');
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // ⚡ INTERACCIONES DE LOS COMPONENTES
+    // ⚡ INTERACCIONES DE LOS COMPONENTES (1 al 5)
     // ==========================================
 
     // Comp 1: Mouse
@@ -55,14 +55,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectOpt = document.getElementById('select-opt');
     const formLog = document.getElementById('form-log');
     if (sampleForm && formLog) {
-        selectOpt.addEventListener('change', (e) => {
-            formLog.classList.remove('d-none');
-            formLog.textContent = `Cambio de opción: ${e.target.value}`;
-        });
+        if (selectOpt) {
+            selectOpt.addEventListener('change', (e) => {
+                formLog.className = "alert alert-info shadow-sm";
+                formLog.textContent = `Cambio de opción: ${e.target.value}`;
+            });
+        }
         sampleForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            formLog.classList.remove('d-none');
-            formLog.innerHTML = `🚀 Datos enviados con éxito: <strong>${selectOpt.value}</strong>`;
+            formLog.className = "alert alert-info shadow-sm";
+            formLog.innerHTML = `🚀 Datos enviados con éxito: <strong>${selectOpt ? selectOpt.value : ''}</strong>`;
         });
     }
 
@@ -83,6 +85,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrollLog) {
         window.addEventListener('scroll', () => {
             scrollLog.textContent = `Scroll: ${Math.round(window.scrollY)}px`;
+        });
+    }
+
+    // ==========================================
+    // 👨‍👦‍👦 PUNTO 3: CONTADOR DE ELEMENTOS HIJOS GLOBAL
+    // ==========================================
+    const btnCountNodes = document.querySelector('.btn-count-nodes');
+    const targetComponent = document.querySelector('.target-component');
+    const nodeCountDisplay = document.querySelector('.node-count-display');
+
+    if (btnCountNodes && targetComponent && nodeCountDisplay) {
+        btnCountNodes.addEventListener('click', () => {
+            // .children cuenta exclusivamente etiquetas HTML hijas directas (nodos Element)
+            const cantidadHijos = targetComponent.children.length; 
+            nodeCountDisplay.classList.remove('d-none');
+            nodeCountDisplay.innerHTML = `👨‍👦‍👦 Este componente tiene actualmente <span class="badge bg-success fs-6">${cantidadHijos}</span> elementos hijos directos en su estructura HTML.`;
         });
     }
 });

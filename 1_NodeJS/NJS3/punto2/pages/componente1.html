@@ -23,7 +23,6 @@
                     </select>
                     <button class="btn btn-outline-secondary theme-toggle py-2 px-3">🌓</button>
                 </div>
-                
                 <div class="d-none d-md-block pe-2">
                     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                         <span class="fw-bold fs-5">🕹️ Menú Eventos</span>
@@ -45,10 +44,20 @@
                     <h2 class="fw-bold">Componente 1: Eventos de Mouse</h2>
                     <p class="text-muted">Pasa el cursor, haz click o doble click en la caja de abajo.</p>
                     
-                    <div id="mouse-box" class="card mouse-test-box p-5 my-4 text-center fw-bold text-info shadow-sm">
-                        Área Interactiva del Mouse
+                    <div class="card p-4 my-4 shadow-sm target-component">
+                        <h5 class="card-title text-secondary mb-3">Área de Pruebas Dinámicas</h5>
+                        <div id="mouse-box" class="p-5 text-center fw-bold text-info border rounded bg-body-tertiary" style="cursor: pointer;">
+                            Interactúa con este bloque
+                        </div>
                     </div>
                     <p id="mouse-log" class="fs-5 fw-bold text-primary" style="min-height: 30px;"></p>
+
+                    <div class="mt-4 pt-3 border-top">
+                        <button class="btn btn-outline-primary btn-count-nodes fw-bold btn-sm">
+                            🔍 Pulsar para contar hijos de este componente
+                        </button>
+                        <div class="node-count-display alert alert-success d-none mt-2 fw-bold" role="alert"></div>
+                    </div>
                 </main>
             </div>
 

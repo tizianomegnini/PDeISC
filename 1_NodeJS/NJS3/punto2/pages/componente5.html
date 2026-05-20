@@ -23,7 +23,6 @@
                     </select>
                     <button class="btn btn-outline-secondary theme-toggle py-2 px-3">🌓</button>
                 </div>
-                
                 <div class="d-none d-md-block pe-2">
                     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                         <span class="fw-bold fs-5">🕹️ Menú Eventos</span>
@@ -41,17 +40,24 @@
             </div>
 
             <div class="col-12 col-md-8 col-lg-9">
-                <main class="ps-md-2" style="min-height: 150vh;">
+                <main class="ps-md-2" style="min-height: 140vh;">
                     <h2 class="fw-bold">Componente 5: Eventos de Ventana (Scroll)</h2>
                     <p class="text-muted">Usa la rueda del ratón hacia abajo para moverte por la página.</p>
                     
-                    <div class="card p-4 my-4 shadow-sm">
-                        <h4 class="h6 fw-bold">📜 Zona expandida</h4>
-                        <p class="text-secondary m-0">Sigue bajando libremente por la interfaz para revisar el contador dinámico en la esquina inferior derecha...</p>
+                    <div class="card p-4 my-4 shadow-sm target-component">
+                        <h5 class="card-title text-secondary">Monitor de Scroll Local</h5>
+                        <p class="text-secondary m-0">Sigue bajando por el body del documento para revisar el medidor flotante inferior...</p>
                     </div>
                     
                     <div id="scroll-log" class="badge bg-info p-3 fs-6 shadow scroll-counter rounded-pill text-dark">
                         Scroll: 0px
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top">
+                        <button class="btn btn-outline-primary btn-count-nodes fw-bold btn-sm">
+                            🔍 Pulsar para contar hijos de este componente
+                        </button>
+                        <div class="node-count-display alert alert-success d-none mt-2 fw-bold" role="alert"></div>
                     </div>
                 </main>
             </div>

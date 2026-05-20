@@ -23,7 +23,6 @@
                     </select>
                     <button class="btn btn-outline-secondary theme-toggle py-2 px-3">🌓</button>
                 </div>
-                
                 <div class="d-none d-md-block pe-2">
                     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                         <span class="fw-bold fs-5">🕹️ Menú Eventos</span>
@@ -45,10 +44,18 @@
                     <h2 class="fw-bold">Componente 2: Eventos de Teclado</h2>
                     <p class="text-muted">Haz foco en el campo de texto de abajo y presiona cualquier tecla.</p>
                     
-                    <div class="card p-4 my-4 shadow-sm">
+                    <div class="card p-4 my-4 shadow-sm target-component">
+                        <h5 class="card-title text-secondary mb-3">Área de Captura de Teclas</h5>
                         <input type="text" id="key-input" class="form-control form-control-lg" placeholder="Haz click aquí y empieza a escribir...">
                     </div>
                     <p id="key-log" class="fs-5 font-monospace" style="min-height: 30px;"></p>
+
+                    <div class="mt-4 pt-3 border-top">
+                        <button class="btn btn-outline-primary btn-count-nodes fw-bold btn-sm">
+                            🔍 Pulsar para contar hijos de este componente
+                        </button>
+                        <div class="node-count-display alert alert-success d-none mt-2 fw-bold" role="alert"></div>
+                    </div>
                 </main>
             </div>
 
