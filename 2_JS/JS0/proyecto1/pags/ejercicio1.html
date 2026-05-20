@@ -1,39 +1,59 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Ejercicio 1 - push()</title>
-
-    <!-- Bootstrap CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto 1 - Métodos de Arrays</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/style.css">
 </head>
+<body class="bg-body-tertiary text-body">
 
-<body class="bg-dark text-white">
+    <div class="container-fluid py-4 px-md-4">
+        
+        <header class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mb-4 pb-3 border-bottom max-container mx-auto">
+            <div>
+                <span class="badge bg-secondary-subtle text-secondary-emphasis mb-1">Estructuras de Datos</span>
+                <h1 class="fw-bold h3 m-0">Laboratorio de Métodos Array JavaScript</h1>
+                <p class="text-body-secondary small m-0">Ejecución interactiva de las 14 familias operacionales del estándar ECMAScript.</p>
+            </div>
+            <button id="theme-toggle" class="btn btn-outline-secondary px-3 fw-bold shadow-sm d-flex align-items-center gap-2">
+                <span id="theme-icon">🌙</span> <span id="theme-text">Modo Oscuro</span>
+            </button>
+        </header>
 
-<div class="container py-5 text-center">
+        <div class="row g-4 max-container mx-auto">
+            
+            <div class="col-12 col-md-4 col-xl-3">
+                <div class="card shadow-sm p-3 position-sticky style-sidebar-menu" style="top: 20px;">
+                    <h5 class="fw-bold mb-3 text-body-secondary border-bottom pb-2 fs-6 text-uppercase">🧪 Métodos (1-14)</h5>
+                    <div class="list-group list-group-flush overflow-y-auto style-scroll rounded" id="methods-menu" style="max-height: 70vh;">
+                        </div>
+                </div>
+            </div>
 
-    <h1 class="mb-4">Ejercicio 1 - push()</h1>
+            <div class="col-12 col-md-8 col-xl-9">
+                <div class="card shadow-sm p-3 p-sm-4 mb-4 bg-body" style="min-height: 400px;">
+                    <div class="d-flex align-items-center gap-2 mb-3 border-bottom pb-2">
+                        <h2 class="fw-bold h4 m-0 text-capitalize" id="active-method-title">Seleccioná un método</h2>
+                        <code class="fs-5 text-secondary" id="active-method-syntax">.prototype</code>
+                    </div>
+                    
+                    <div id="exercise-workspace" class="d-flex flex-column gap-4">
+                        <div class="text-center text-muted py-5">
+                            Elegí cualquiera de los 14 incisos del menú lateral para inicializar sus entornos de pruebas.
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <div class="mb-3">
-        <input id="fruta" class="form-control mb-2" placeholder="Agregar fruta">
-        <button id="btnFruta" class="btn btn-info w-100">Agregar fruta</button>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <input id="amigo" class="form-control mb-2" placeholder="Agregar amigo">
-        <button id="btnAmigo" class="btn btn-success w-100">Agregar amigo</button>
-    </div>
+    <button id="btn-back-to-top" class="btn btn-secondary position-fixed bottom-0 end-0 m-3 m-md-4 shadow rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; z-index: 1050;" aria-label="Volver arriba">
+        ▲
+    </button>
 
-    <div class="mb-3">
-        <input id="numero" type="number" class="form-control mb-2" placeholder="Agregar número">
-        <button id="btnNumero" class="btn btn-warning w-100">Agregar número (condición)</button>
-    </div>
-
-    <div id="lista" class="mt-4 fs-5"></div>
-
-</div>
-
-<script type="module" src="/scripts/ejercicio1.js"></script>
-
+    <script src="../scripts/ejercicio1.js"></script>
 </body>
 </html>

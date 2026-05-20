@@ -1,13 +1,10 @@
 {
   "name": "proyecto1",
   "version": "1.0.0",
-  "description": "",
+  "type": "module",
+  "description": "Proyecto 1 - Laboratorio de Arrays con HTTP Nativo",
   "main": "servidor1.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module"
+    "start": "node servidor1.js"
+  }
 }

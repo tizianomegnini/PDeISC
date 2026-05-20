@@ -1,39 +1,56 @@
-import http from "http";
-import fs from "fs";
-import path from "path";
+import http from 'http';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const puerto = 3000;
+const PORT = 3000;
 
-const servidor = http.createServer((req, res) => {
+// Configuración de rutas usando ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    console.log("URL:", req.url); // para debug
+// Diccionario de MIME Types para que el navegador interprete correctamente los recursos
+const MIME_TYPES = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css',
+    '.js': 'text/javascript'
+};
 
-    let archivo = req.url === "/" 
-        ? "./pags/ejercicio1.html"
-        : path.join(".", req.url);
+const server = http.createServer(async (req, res) => {
+    let filePath = '';
 
-    const ext = path.extname(archivo);
+    // 🗺️ ENRUTADOR MANUAL
+    if (req.url === '/' || req.url === '/index.html') {
+        // Ruta raíz: Servimos el html de la carpeta pags
+        filePath = path.join(__dirname, 'pags', 'ejercicio1.html');
+    } else if (req.url.startsWith('/scripts/') || req.url.startsWith('/styles/')) {
+        // Rutas estáticas: Mapeamos directamente al sistema de archivos
+        filePath = path.join(__dirname, req.url);
+    } else {
+        // 404 si piden cualquier otra cosa
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('❌ 404 Not Found - Recurso no encontrado en el laboratorio');
+        return;
+    }
 
-    const tipos = {
-        ".html": "text/html",
-        ".js": "text/javascript",
-        ".css": "text/css"
-    };
-
-    fs.readFile(archivo, (err, data) => {
-        if (err) {
-            console.log("ERROR:", archivo);
-            res.writeHead(404);
-            res.end("No encontrado");
-        } else {
-            res.writeHead(200, {
-                "Content-Type": (tipos[ext] || "text/plain") + "; charset=utf-8"
-            });
-            res.end(data);
-        }
-    });
+    // 📦 LECTURA Y DESPACHO DEL ARCHIVO
+    try {
+        // Detectar extensión y asignar su MIME Type correspondiente
+        const ext = path.extname(filePath);
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+        
+        // Leer el archivo de forma asincrónica limpia
+        const data = await fs.readFile(filePath);
+        
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(data);
+    } catch (error) {
+        // Si el archivo físicamente no existe en el disco, tiramos un 500 o 404
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('🔥 500 Internal Server Error - Error al leer el archivo en el servidor');
+    }
 });
 
-servidor.listen(puerto, () => {
-    console.log("Servidor corriendo en http://localhost:3000");
+server.listen(PORT, () => {
+    console.log(`🚀 Servidor PURE HTTP (Sin Express) corriendo en: http://localhost:${PORT}`);
 });
