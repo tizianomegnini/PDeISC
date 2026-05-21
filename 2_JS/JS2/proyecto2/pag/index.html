@@ -5,89 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analizador de Datos Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        :root[data-theme="light"] { --bg: #f8f9fa; --card: #ffffff; --text: #212529; --border: #dee2e6; }
-        :root[data-theme="dark"] { --bg: #0f1113; --card: #1a1d21; --text: #e9ecef; --border: #2d3238; }
-
-        body { background-color: var(--bg); color: var(--text); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); min-height: 100vh; overflow-x: hidden; }
-        .main-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin: 30px auto; max-width: 900px; }
-        
-        .drop-zone { border: 3px dashed #0d6efd; border-radius: 15px; padding: 4rem 2rem; transition: 0.3s; background: rgba(13, 110, 253, 0.03); }
-        .drop-zone.disabled { pointer-events: none; border-style: solid; border-color: #198754; background: rgba(25, 135, 84, 0.05); }
-        
-        .stat-box { background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 1.2rem; transition: transform 0.2s; }
-        .stat-box:hover { transform: translateY(-5px); }
-        
-        .badge-anim { animation: fadeIn 0.5s ease forwards; opacity: 0; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        #scrollToTop { position: fixed; bottom: 30px; right: 30px; display: none; width: 55px; height: 55px; border-radius: 50%; z-index: 99; }
-    </style>
+    <link rel="stylesheet" href="../styles/style.css">
 </head>
 <body>
-    <div class="container py-3">
-        <div class="main-card">
-            <div class="d-flex justify-content-between align-items-center mb-5">
-                <h2 class="fw-bold mb-0">Análisis de Datos</h2>
-                <div class="d-flex gap-2">
-                    <button id="resetBtn" class="btn btn-outline-danger d-none">Nuevo Análisis</button>
-                    <button id="themeBtn" class="btn btn-dark shadow-sm">🌓</button>
+
+    <div class="app-layout">
+        
+        <aside class="sidebar">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0 text-truncate">DataAnalyzer <span class="text-primary">Pro</span></h4>
+                    <button id="themeBtn" class="btn btn-sm btn-theme shadow-sm">🌓</button>
+                </div>
+                
+                <hr class="my-3" style="color: var(--border); opacity: 0.5;">
+                <p class="small text-muted text-uppercase fw-bold mb-3">Carga de Datos</p>
+
+                <div id="dropZone" class="drop-zone mb-3 shadow-sm">
+                    <input type="file" id="fileInput" accept=".txt" hidden>
+                    
+                    <div id="uploadUI">
+                        <div class="fs-1 mb-2">📄</div>
+                        <h6 class="fw-bold mb-1">Subir Archivo .txt</h6>
+                        <p class="small text-muted mb-0">Arrastra o haz clic aquí</p>
+                    </div>
+
+                    <div id="successUI" class="d-none">
+                        <div class="fs-1 mb-2">✅</div>
+                        <h6 class="fw-bold mb-0 text-success">¡Cargado con éxito!</h6>
+                    </div>
+                </div>
+
+                <div id="errorFeedback" class="alert alert-danger d-none border-0 shadow-sm bg-danger bg-opacity-10 text-danger">
+                    <div class="d-flex align-items-center">
+                        <span class="fs-5 me-2">⚠️</span>
+                        <div id="errorText" class="small fw-medium"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- ... (dentro de la main-card) ... -->
-<div id="dropZone" class="drop-zone text-center shadow-sm">
-    <input type="file" id="fileInput" accept=".txt" hidden>
-    <div id="uploadUI">
-        <div class="display-1 mb-3">📄</div>
-        <h4 class="fw-bold">Analizador de Texto</h4>
-        <p class="fw-bold">Arrastra o haz clic para subir tu .txt</p>
-    </div>
-    <div id="successUI" class="d-none">
-        <div class="display-1 text-success mb-3">✅</div>
-        <h4 class="fw-bold">¡Archivo Cargado!</h4>
-    </div>
-</div>
-
-<!-- MENSAJE DE ERROR (Reemplaza al alert) -->
-<div id="errorFeedback" class="alert alert-danger d-none mt-3 border-0 shadow-sm animate__animated animate__shakeX">
-    <div class="d-flex align-items-center">
-        <span class="fs-4 me-2">⚠️</span>
-        <div id="errorText"></div>
-    </div>
-</div>
-
-<!-- ... (resto de los resultados) ... -->
-
-            <div id="resultados" class="d-none mt-5">
-                <div class="row g-3 mb-5">
-                    <div class="col-6 col-lg-3"><div class="stat-box"><h6>Útiles</h6><b id="contUtil" class="h3">0</b></div></div>
-                    <div class="col-6 col-lg-3"><div class="stat-box"><h6>No Útiles</h6><b id="contNoUtil" class="h3 ">0</b></div></div>
-                    <div class="col-6 col-lg-3"><div class="stat-box"><h6>Efectividad</h6><b id="percUtil" class="h3 text-primary">0%</b></div></div>
-                    <div class="col-6 col-lg-3"><div class="stat-box" style="border-bottom: 4px solid #198754;"><h6>Factoriales</h6><b id="contFact" class="h3 text-success">0</b></div></div>
-                </div>
-
-                <div class="mb-5">
-                    <label class="form-label fw-bold small text-uppercase">Números detectados (Igual inicio/fin):</label>
-                    <div id="listaFiltrada" class="p-3 border rounded d-flex flex-wrap gap-2 shadow-sm"></div>
-                </div>
-                <!-- ... (Dentro de los resultados, después de la lista de Útiles) ... -->
-
-<div class="mb-4">
-    <label class="form-label fw-bold small text-uppercase text-success">
-        <i class="bi bi-magic"></i> Factoriales Detectados (Global):
-    </label>
-    <!-- Nueva zona para mostrar todos los factoriales hallados -->
-    <div id="listaFactoriales" class="p-3 border border-success rounded d-flex flex-wrap gap-2 shadow-sm bg-success bg-opacity-10">
-        <small class="text-muted italic">Esperando datos...</small>
-    </div>
-</div>
-
-<!-- ... (Antes del botón de exportar) ... -->
-                <button id="btnExportar" class="btn btn-primary btn-lg w-100 py-3 fw-bold rounded-pill">
-                    DESCARGAR REPORTE DETALLADO
+            <div class="mt-4">
+                <button id="resetBtn" class="btn btn-outline-danger w-100 py-2 d-none fw-bold small">
+                    🔄 INICIAR NUEVO ANÁLISIS
                 </button>
             </div>
-        </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <div id="placeholderUI" class="text-center py-5 my-5 text-muted">
+                <div class="display-3 mb-3">📊</div>
+                <h5>Esperando carga de datos...</h5>
+                <p class="small">Sube un archivo .txt en el panel izquierdo para comenzar el escaneo analítico.</p>
+            </div>
+
+            <div id="resultados" class="d-none">
+                <div class="mb-4">
+                    <h3 class="fw-bold mb-1">Tablero de Rendimiento Numérico</h3>
+                    <p class="small text-muted">Resultados en tiempo real basados en filtros de precisión.</p>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-xl-3">
+                        <div class="stat-box">
+                            <h6 class="small text-muted text-uppercase fw-bold">Números Útiles</h6>
+                            <b id="contUtil" class="h3 fw-bold">0</b>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="stat-box">
+                            <h6 class="small text-muted text-uppercase fw-bold">Números No Útiles</h6>
+                            <b id="contNoUtil" class="h3 fw-bold">0</b>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="stat-box" style="border-left: 4px solid #0d6efd;">
+                            <h6 class="small text-muted text-uppercase fw-bold">Efectividad</h6>
+                            <b id="percUtil" class="h3 fw-bold text-primary">0%</b>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="stat-box" style="border-left: 4px solid #198754;">
+                            <h6 class="small text-muted text-uppercase fw-bold">Factoriales</h6>
+                            <b id="contFact" class="h3 fw-bold text-success">0</b>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-12 col-xl-6">
+                        <div class="data-viewer h-100 shadow-sm">
+                            <label class="form-label fw-bold small text-uppercase text-muted mb-3">🪞 Números Espejo Hallados (Inicio == Fin)</label>
+                            <div id="listaFiltrada" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-6">
+                        <div class="data-viewer h-100 shadow-sm">
+                            <label class="form-label fw-bold small text-uppercase text-success mb-3">✨ Factoriales Perfectos Encontrados</label>
+                            <div id="listaFactoriales" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer-report-box shadow-sm mb-4">
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-1 small">¿Necesitas guardar estos resultados?</h6>
+                        <p class="small text-muted mb-0">Genera un documento de texto detallado en la base de datos local.</p>
+                    </div>
+                    <button id="btnExportar" class="btn btn-primary px-4 fw-bold rounded-2 btn-sm btn-exportar-custom">
+                        DESCARGAR REPORTE (.TXT)
+                    </button>
+                </div>
+
+                <div class="data-viewer shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="form-label fw-bold small text-uppercase text-muted mb-0">🕒 Historial de Auditorías en Servidor (`/date`)</label>
+                        <button id="btnRefreshHistory" class="btn btn-xs btn-outline-secondary px-2 py-1 small" style="font-size:0.75rem;">🔄 Refrescar</button>
+                    </div>
+                    <div id="historialLista" class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
     <button id="scrollToTop" class="btn btn-primary shadow-lg">↑</button>
