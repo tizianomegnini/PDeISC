@@ -4,9 +4,9 @@ import fs from "fs";
 let usuarios = [];
 
 const server = http.createServer((req, res) => {
+  const { method, url } = req;
 
-  // HTML
-  if (req.url === "/") {
+  if (method === "GET" && url === "/") {
     fs.readFile("./pag/index.html", (err, data) => {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(data);
@@ -14,8 +14,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // JS
-  if (req.url === "/app.js") {
+  if (method === "GET" && url === "/scripts/app.js") {
     fs.readFile("./scripts/app.js", (err, data) => {
       res.writeHead(200, { "Content-Type": "application/javascript" });
       res.end(data);
@@ -23,32 +22,32 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // POST
-  if (req.url === "/agregar" && req.method === "POST") {
-    let body = "";
-
-    req.on("data", chunk => body += chunk);
-
-    req.on("end", () => {
-      const usuario = JSON.parse(body);
-      usuarios.push(usuario);
-
-      res.writeHead(200);
-      res.end("OK");
+  if (method === "GET" && url === "/styles/style.css") {
+    fs.readFile("./styles/style.css", (err, data) => {
+      res.writeHead(200, { "Content-Type": "text/css" });
+      res.end(data);
     });
-
     return;
   }
 
-  // GET usuarios
-  if (req.url === "/usuarios") {
+  if (method === "POST" && url === "/agregar") {
+    let body = "";
+    req.on("data", chunk => body += chunk);
+    req.on("end", () => {
+      usuarios.push(JSON.parse(body));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: true }));
+    });
+    return;
+  }
+
+  if (method === "GET" && url === "/usuarios") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(usuarios));
     return;
   }
-
 });
 
 server.listen(3000, () => {
-  console.log("http://localhost:3000");
+  console.log("🚀 Sistema Financiero iniciado en: http://localhost:3000");
 });

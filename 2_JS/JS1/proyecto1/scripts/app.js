@@ -1,194 +1,230 @@
-// Obtiene el formulario por su ID
 const form = document.getElementById("form");
-
-// Arrays con IDs de inputs que solo permiten texto o números
-const soloTexto = ["nombre", "apellido"];
-const soloNumeros = ["dni", "telefono", "cbu"];
-
-// Función que bloquea cualquier tecla que no sea letra
-function bloquearTexto(e) {
-  const tecla = e.key;
-
-  // Teclas especiales permitidas (para borrar o moverse)
-  const especiales = ["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"];
-
-  // Si es una tecla especial, se permite
-  if (especiales.includes(tecla)) return;
-
-  // Si no es una letra (incluye acentos y espacio), se bloquea
-  if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ ]$/.test(tecla)) {
-    e.preventDefault();
-  }
-}
-
-// Función que bloquea cualquier tecla que no sea número
-function bloquearNumero(e) {
-  const tecla = e.key;
-
-  // Teclas especiales permitidas
-  const especiales = ["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"];
-
-  // Si es especial, se permite
-  if (especiales.includes(tecla)) return;
-
-  // Si no es un número, se bloquea
-  if (!/^[0-9]$/.test(tecla)) {
-    e.preventDefault();
-  }
-}
-
-// Aplica la función de solo texto a los inputs correspondientes
-soloTexto.forEach(id => {
-  document.getElementById(id).addEventListener("keydown", bloquearTexto);
-});
-
-// Aplica la función de solo números a los inputs correspondientes
-soloNumeros.forEach(id => {
-  document.getElementById(id).addEventListener("keydown", bloquearNumero);
-});
-
-// Evita pegar contenido inválido en los inputs
-document.querySelectorAll("input").forEach(input => {
-  input.addEventListener("paste", e => {
-    // Obtiene el texto pegado
-    const texto = (e.clipboardData || window.clipboardData).getData("text");
-
-    // Validación para nombre y apellido (solo letras)
-    if (["nombre", "apellido"].includes(input.id)) {
-      if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ ]+$/.test(texto)) e.preventDefault();
-    }
-
-    // Validación para dni, telefono y cbu (solo números)
-    if (["dni", "telefono", "cbu"].includes(input.id)) {
-      if (!/^[0-9]+$/.test(texto)) e.preventDefault();
-    }
-
-    // email permitido libremente (sin bloqueo al pegar)
-  });
-});
-
-// Obtiene el input de email
+const cbuInput = document.getElementById("cbu");
+const cbuFeedback = document.getElementById("cbuFeedback");
 const emailInput = document.getElementById("email");
+const fechaInput = document.getElementById("fechaNacimiento");
+const dateFeedback = document.getElementById("dateFeedback");
 
-// Valida el email en tiempo real
-emailInput.addEventListener("input", () => {
-  // Solo permite correos de gmail o hotmail terminados en .com
-  const regex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail)\.com$/;
+// Añadimos 'cuil' a las restricciones por teclado
+const soloTexto = ["nombre", "apellido"];
+const soloNumeros = ["dni", "telefono", "cbu", "cuil"];
 
-  // Si cumple, elimina el mensaje de error
-  if (regex.test(emailInput.value)) {
+function bloquearTexto(e) {
+  if (["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"].includes(e.key)) return;
+  if (!/^[A-Za-zÁÉÍÓÚáéíóúñÑ ]$/.test(e.key)) e.preventDefault();
+}
+
+function bloquearNumero(e) {
+  if (["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"].includes(e.key)) return;
+  if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+}
+
+soloTexto.forEach(id => document.getElementById(id).addEventListener("keydown", bloquearTexto));
+soloNumeros.forEach(id => document.getElementById(id).addEventListener("keydown", bloquearNumero));
+
+// --- VALIDACIONES DE EMAIL Y FECHA EN TIEMPO REAL ---
+const validarEmailYEdad = () => {
+  // Corregido: Expresión regular robusta con flag 'i' (Case Insensitive)
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail)\.com$/i;
+  
+  if (emailRegex.test(emailInput.value)) {
     emailInput.setCustomValidity("");
   } else {
-    // Si no cumple, muestra error personalizado
     emailInput.setCustomValidity("Email inválido");
   }
-});
 
-// VALIDACIÓN VISUAL (clases de Bootstrap)
+  // Validación de edad (+18) obligatoria en bancos
+  if (fechaInput.value) {
+    const nacimiento = new Date(fechaInput.value);
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+
+    if (edad >= 18) {
+      fechaInput.setCustomValidity("");
+    } else {
+      fechaInput.setCustomValidity("Menor de edad");
+      dateFeedback.textContent = `Posee ${edad} años. Regulación exige mayoría de edad (+18).`;
+    }
+  }
+};
+
+emailInput.addEventListener("input", validarEmailYEdad);
+fechaInput.addEventListener("input", validarEmailYEdad);
+
+// Monitoreo visual de clases Bootstrap
 form.querySelectorAll("input, select").forEach(input => {
   input.addEventListener("input", () => {
-    // Si el campo es válido
+    if (input.id === "cbu") {
+      cbuInput.setCustomValidity("");
+      cbuFeedback.textContent = "Debe poseer exactamente 22 dígitos.";
+    }
     if (input.checkValidity()) {
       input.classList.add("is-valid");
       input.classList.remove("is-invalid");
     } else {
-      // Si es inválido
       input.classList.add("is-invalid");
       input.classList.remove("is-valid");
     }
   });
 });
 
-// Evento al enviar el formulario
+// --- SUBMIT DEL FORMULARIO ---
 form.addEventListener("submit", async (e) => {
-  e.preventDefault(); // evita recargar la página
+  e.preventDefault();
+  
+  validarEmailYEdad();
 
-  // Si el formulario no es válido, muestra validaciones
+  // Control asíncrono anti-duplicado sin ALERTS molestos
+  const resCheck = await fetch("/usuarios");
+  const usuarios = await resCheck.json();
+  const currentCbu = cbuInput.value.trim();
+
+  if (usuarios.some(u => u.cbu === currentCbu)) {
+    cbuInput.setCustomValidity("CBU duplicado");
+    cbuInput.classList.add("is-invalid");
+    cbuInput.classList.remove("is-valid");
+    cbuFeedback.textContent = "❌ Alerta de riesgo: CBU ya asignado a otra cuenta.";
+    form.classList.add("was-validated");
+    return;
+  }
+
   if (!form.checkValidity()) {
     form.classList.add("was-validated");
     return;
   }
 
-  // 🔥 3 FORMAS DE OBTENER DATOS
+  // =========================================================================
+  // 🔥 CONSIGNAS: DEMOSTRACIÓN EXPLÍCITA DE LAS 3 FORMAS DE LECTURA DE DATOS
+  // =========================================================================
+  
+  // FORMA 1: Acceso directo utilizando la propiedad del DOM por su ID único
+  const valorNombre = document.getElementById("nombre").value;
+  const valorDni = document.getElementById("dni").value;
+  const valorCuil = document.getElementById("cuil").value;
 
-  // 1. Acceso directo por ID
-  const nombre = document.getElementById("nombre").value;
+  // FORMA 2: Instanciación de la API FormData (Especializada en procesamiento de formularios)
+  const fd = new FormData(form);
+  const valorApellido = fd.get("apellido");
+  const valorFechaNacimiento = fd.get("fechaNacimiento");
+  const valorTipo = fd.get("tipo");
+  const valorOrigen = fd.get("origenFondos");
 
-  // 2. Usando FormData (forma más práctica)
-  const data = new FormData(form);
-  const apellido = data.get("apellido");
+  // FORMA 3: QuerySelector avanzado con sintaxis de selectores CSS
+  const valorEmail = document.querySelector("#email").value;
+  const valorTelefono = document.querySelector("#telefono").value;
+  const valorMonto = document.querySelector("#monto").value;
 
-  // 3. Usando querySelector
-  const email = document.querySelector("#email").value;
+  // =========================================================================
 
-  // evitar duplicado de CBU
-
-  // Pide la lista de usuarios al servidor
-  const resCheck = await fetch("/usuarios");
-  const usuarios = await resCheck.json();
-
-  // Verifica si ya existe un usuario con ese CBU
-  if (usuarios.some(u => u.cbu === data.get("cbu"))) {
-    alert("Ese CBU ya está registrado");
-    return;
-  }
-
-  // Crea el objeto usuario con los datos del formulario
-  const usuario = {
-    nombre: nombre.trim(),       // elimina espacios extra
-    apellido: apellido.trim(),
-    dni: data.get("dni"),
-    email: email.trim(),
-    telefono: data.get("telefono"),
-    tipo: data.get("tipo"),
-    cbu: data.get("cbu"),
-    monto: data.get("monto")
+  const payload = {
+    nombre: valorNombre.trim(),
+    apellido: valorApellido.trim(),
+    dni: valorDni.trim(),
+    cuil: valorCuil.trim(),
+    fechaNacimiento: valorFechaNacimiento,
+    email: valorEmail.trim(),
+    telefono: valorTelefono.trim(),
+    tipo: valorTipo,
+    origenFondos: valorOrigen,
+    cbu: currentCbu,
+    monto: valorMonto
   };
 
-  // Envía el usuario al servidor
   await fetch("/agregar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(usuario)
+    body: JSON.stringify(payload)
   });
 
-  // Limpia el formulario
   form.reset();
+  form.classList.remove("was-validated");
+  form.querySelectorAll("input, select").forEach(i => i.classList.remove("is-valid", "is-invalid"));
 
-  // Quita estilos de validación
-  form.querySelectorAll("input, select").forEach(i => i.classList.remove("is-valid"));
-
-  // Recarga la lista de usuarios
   cargarUsuarios();
 });
 
-// Función que trae y muestra los usuarios en pantalla
+// --- RENDER DE TARJETAS DE CRÉDITO / CUENTAS ---
 async function cargarUsuarios() {
   const res = await fetch("/usuarios");
   const data = await res.json();
-
   const lista = document.getElementById("lista");
 
-  // Limpia la lista antes de volver a cargarla
   lista.innerHTML = "";
 
-  // Recorre los usuarios y los muestra
-  data.forEach(u => {
-    // Formatea el monto con separadores de miles (formato argentino)
-    const montoFormateado = Number(u.monto).toLocaleString("es-AR");
+  if (data.length === 0) {
+    lista.innerHTML = `
+      <div class="col-12 text-center py-5">
+        <p class="text-muted fst-italic">No se registran solicitudes aprobadas en este lote de cumplimiento.</p>
+      </div>`;
+    return;
+  }
 
-    // Agrega cada usuario como un item de lista
+  data.forEach(u => {
+    const montoFormateado = Number(u.monto).toLocaleString("es-AR", { minimumFractionDigits: 2 });
+    
     lista.innerHTML += `
-      <li class="list-group-item">
-        <strong>${u.nombre} ${u.apellido}</strong><br>
-        DNI: ${u.dni} | Tipo: ${u.tipo}<br>
-        $${montoFormateado} | Tel: ${u.telefono}<br>
-        Mail: ${u.email} <br>
-        CBU: ${u.cbu}
-      </li>
+      <div class="col-12 col-xl-6">
+        <div class="account-card">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h5 class="fw-bold mb-0 text-success">${u.apellido}, ${u.nombre}</h5>
+              <small class="text-muted d-block">DNI: ${u.dni} | CUIL: ${u.cuil}</small>
+              <small class="text-muted">Nacido el: ${u.fechaNacimiento}</small>
+            </div>
+            <span class="badge ${u.tipo === 'Ahorro' ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'} px-2 py-1">
+              ${u.tipo}
+            </span>
+          </div>
+          <hr class="my-2" style="opacity:0.1; color:var(--text);">
+          <div class="small mb-3">
+            <div class="text-truncate"><b>CBU:</b> <span class="font-monospace text-warning">${u.cbu}</span></div>
+            <div class="text-muted text-truncate"><b>Fondos:</b> ${u.origenFondos} | <b>Mail:</b> ${u.email}</div>
+          </div>
+          <div class="text-end">
+            <small class="text-muted d-block" style="font-size:0.75rem;">SALDO DISPONIBLE</small>
+            <span class="h4 fw-bold text-success">$ ${montoFormateado}</span>
+          </div>
+        </div>
+      </div>
     `;
   });
 }
 
-// Ejecuta la función al cargar la página
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// Inicialización asíncrona pura
 cargarUsuarios();
+// --- CONTROL DEL BOTÓN SCROLL TO TOP (HÍBRIDO PC/MOBILE) ---
+const scrollTopBtn = document.getElementById("scrollTopBtn");
+const mainContentPanel = document.querySelector(".main-content");
+
+const controlarScroll = () => {
+  // Detecta el scroll en .main-content (PC) o en el window (Mobile)
+  const scrollInyectado = mainContentPanel.scrollTop;
+  const scrollNativo = window.scrollY;
+
+  if (scrollInyectado > 300 || scrollNativo > 300) {
+    scrollTopBtn.classList.add("show");
+  } else {
+    scrollTopBtn.classList.remove("show");
+  }
+};
+
+// Escuchamos los dos entornos para asegurar que funcione en cualquier dispositivo
+mainContentPanel.addEventListener("scroll", controlarScroll);
+window.addEventListener("scroll", controlarScroll);
+
+// Comportamiento de subida suave (Smooth)
+scrollTopBtn.addEventListener("click", () => {
+  // Resetea el scroll de PC
+  mainContentPanel.scrollTo({ top: 0, behavior: "smooth" });
+  // Resetea el scroll de Celular
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
