@@ -29,6 +29,15 @@ const API = 'https://jsonplaceholder.typicode.com';
         </div>
       </div>`).join('');
   }
+  function nombreValido(nombre) {
+    // Solo letras (incluye acentos) y espacios
+    return /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s']+$/.test(nombre);
+  }
+
+  function emailValido(email) {
+    // Validación básica de email
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
 
   function showMsg(id, html, ok) {
     document.getElementById(id).innerHTML =
@@ -60,25 +69,79 @@ const API = 'https://jsonplaceholder.typicode.com';
 
   // ══ C2: POST formulario ══
   async function enviarFormFetch() {
-    const nombre = document.getElementById('form-nombre').value.trim();
-    const email  = document.getElementById('form-email').value.trim();
-    if (!nombre || !email) { showMsg('resultado-2','Completá nombre y email.', false); return; }
-    try {
-      const res = await fetch(`${API}/users`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name: nombre, email })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      showMsg('resultado-2', `<i class="bi bi-check-circle me-1"></i>Usuario creado con <strong>fetch</strong>. ID de respuesta: <strong>${data.id}</strong>`, true);
-    } catch(e) { showMsg('resultado-2', e.message, false); }
+  const nombre = document.getElementById('form-nombre').value.trim();
+  const email  = document.getElementById('form-email').value.trim();
+
+  // VALIDACIONES
+  if (!nombre || !email) {
+    showMsg('resultado-2','Completá nombre y email.', false);
+    return;
   }
+
+  if (!nombreValido(nombre)) {
+    showMsg('resultado-2','El nombre no puede contener números.', false);
+    return;
+  }
+
+  if (!emailValido(email)) {
+    showMsg('resultado-2','Ingresá un email válido.', false);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/users`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name: nombre, email })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    showMsg(
+      'resultado-2',
+      `<i class="bi bi-check-circle me-1"></i>Usuario creado con <strong>fetch</strong>. ID de respuesta: <strong>${data.id}</strong>`,
+      true
+    );
+
+  } catch(e) {
+    showMsg('resultado-2', e.message, false);
+  }
+}
   async function enviarFormAxios() {
-    const nombre = document.getElementById('form-nombre').value.trim();
-    const email  = document.getElementById('form-email').value.trim();
-    if (!nombre || !email) { showMsg('resultado-2','Completá nombre y email.', false); return; }
-    try {
-      const res = await axios.post(`${API}/users`, { name: nombre, email });
-      showMsg('resultado-2', `<i class="bi bi-check-circle me-1"></i>Usuario creado con <strong>axios</strong>. ID de respuesta: <strong>${res.data.id}</strong>`, true);
-    } catch(e) { showMsg('resultado-2', e.message, false); }
+  const nombre = document.getElementById('form-nombre').value.trim();
+  const email  = document.getElementById('form-email').value.trim();
+
+  // VALIDACIONES
+  if (!nombre || !email) {
+    showMsg('resultado-2','Completá nombre y email.', false);
+    return;
   }
+
+  if (!nombreValido(nombre)) {
+    showMsg('resultado-2','El nombre no puede contener números.', false);
+    return;
+  }
+
+  if (!emailValido(email)) {
+    showMsg('resultado-2','Ingresá un email válido.', false);
+    return;
+  }
+
+  try {
+    const res = await axios.post(`${API}/users`, {
+      name: nombre,
+      email
+    });
+
+    showMsg(
+      'resultado-2',
+      `<i class="bi bi-check-circle me-1"></i>Usuario creado con <strong>axios</strong>. ID de respuesta: <strong>${res.data.id}</strong>`,
+      true
+    );
+
+  } catch(e) {
+    showMsg('resultado-2', e.message, false);
+  }
+}
