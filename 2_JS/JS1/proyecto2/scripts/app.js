@@ -2,60 +2,68 @@ const form = document.getElementById("form");
 const contenedor = document.getElementById("contenedor");
 const totalMsg = document.getElementById("totalMsg");
 
-// 1. EL ARRAY (Almacenaje principal solicitado)
 let productos = JSON.parse(localStorage.getItem("db_sport")) || [];
 
-//  VALIDACIÓN EN TIEMPO REAL
-form.querySelectorAll("input, textarea").forEach(input => {
-    input.addEventListener("input", () => {
-        if (input.checkValidity()) {
-            input.classList.remove("is-invalid");
-            input.classList.add("is-valid");
+// --- VALIDACIÓN Y LIMPIEZA EN TIEMPO REAL ---
+form.querySelectorAll("input, textarea, select").forEach(el => {
+    el.addEventListener("input", () => {
+        // Limpiamos el error personalizado apenas el usuario escribe
+        el.setCustomValidity("");
+        el.classList.remove("is-invalid");
+        
+        // Damos feedback visual de que el campo está ok
+        if (el.checkValidity()) {
+            el.classList.add("is-valid");
         } else {
-            input.classList.remove("is-valid");
-            input.classList.add("is-invalid");
+            el.classList.remove("is-valid");
         }
     });
 });
 
-// Manejo del envío
+// --- MANEJO DEL ENVÍO ---
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    // 1. Validar campos vacíos (Nativo)
     if (!form.checkValidity()) {
         form.classList.add("was-validated");
+        // El navegador mostrará automáticamente el mensaje de "Completa este campo" 
+        // en el primer campo que falle gracias al comportamiento nativo de HTML5
         return;
     }
 
+    // 2. Procesar datos
     const data = new FormData(form);
     const nuevoProducto = Object.fromEntries(data.entries());
-    nuevoProducto.codigo = nuevoProducto.codigo.toUpperCase();
+    nuevoProducto.codigo = nuevoProducto.codigo.toUpperCase().trim();
 
-    // Evitar duplicados por SKU
+    // 3. Validar Duplicados
+    const codigoInput = document.getElementById("codigo");
     if (productos.some(p => p.codigo === nuevoProducto.codigo)) {
-        alert("⚠️ Este código ya está registrado.");
+        codigoInput.setCustomValidity("El código ya existe.");
+        codigoInput.classList.add("is-invalid");
+        form.classList.add("was-validated");
+        
+        // Mostrar mensaje específico en el feedback
+        const feedback = codigoInput.nextElementSibling;
+        if (feedback) feedback.textContent = "❌ Este código ya está registrado en el inventario.";
         return;
     }
 
-    // --- MÉTODOS DE ALMACENAJE ---
-    
-    // A. Agregar al Array (Memoria volátil)
+    // 4. Guardado
     productos.push(nuevoProducto);
-    
-    // B. LocalStorage (Persistencia en el navegador)
     localStorage.setItem("db_sport", JSON.stringify(productos));
 
-    // C. Envío al Servidor (Persistencia remota)
     try {
         await fetch("/api/guardar", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(nuevoProducto)
         });
     } catch (err) {
-        console.warn("Servidor no disponible, guardado solo localmente.");
+        console.warn("Servidor no disponible, guardado localmente.");
     }
 
-    // Resetear formulario y estilos de validación
     form.reset();
     form.classList.remove("was-validated");
     form.querySelectorAll(".is-valid").forEach(i => i.classList.remove("is-valid"));
@@ -63,7 +71,6 @@ form.addEventListener("submit", async (e) => {
     render();
 });
 
-// Función para mostrar los datos del Array en el HTML
 function render() {
     contenedor.innerHTML = "";
     totalMsg.innerText = `${productos.length} Items`;
@@ -93,5 +100,4 @@ function render() {
     });
 }
 
-// Carga inicial al abrir la página
 render();

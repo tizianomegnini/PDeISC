@@ -27,36 +27,65 @@
       <div class="card shadow-lg bg-dark">
         <div class="card-body p-4">
           <h5 class="card-title mb-4 fw-bold text-uppercase small text-success">Datos del Producto</h5>
+
           <form id="form" class="row g-3" novalidate>
+
             <div class="col-12">
               <input type="text" name="nombre" class="form-control" placeholder="Nombre" required minlength="3">
+              <div class="invalid-feedback">Ingrese un nombre válido (mínimo 3 caracteres)</div>
             </div>
+
             <div class="col-6">
               <input type="text" name="marca" id="marca" class="form-control" placeholder="Marca" required>
+              <div class="invalid-feedback">Ingrese una marca</div>
             </div>
+
             <div class="col-6">
               <input type="text" name="categoria" class="form-control" placeholder="Categoría" required>
+              <div class="invalid-feedback">Ingrese una categoría</div>
             </div>
+
             <div class="col-6">
               <input type="number" name="precio" id="precio" class="form-control" placeholder="Precio $" required min="1">
+              <div class="invalid-feedback">Ingrese un precio válido</div>
             </div>
+
             <div class="col-6">
               <input type="number" name="stock" id="stock" class="form-control" placeholder="Stock" required min="0">
+              <div class="invalid-feedback">Ingrese un stock válido</div>
             </div>
+
             <div class="col-12">
-              <input type="text" name="codigo" class="form-control" placeholder="Código SKU (Ej: ABC12)" required pattern="^[A-Z0-9]+$">
+              <input 
+                type="text" 
+                name="codigo" 
+                id="codigo"
+                class="form-control" 
+                placeholder="Código SKU (Ej: ABC12)" 
+                required 
+                pattern="^[A-Z0-9]+$">
+              
+              <div class="invalid-feedback">
+                ❌ Solo letras mayúsculas y números (sin espacios)
+              </div>
             </div>
+
             <div class="col-12">
               <textarea name="descripcion" class="form-control" placeholder="Descripción breve..." rows="2" required></textarea>
+              <div class="invalid-feedback">Ingrese una descripción</div>
             </div>
+
             <div class="col-12">
               <input type="date" name="fecha" class="form-control" required>
+              <div class="invalid-feedback">Seleccione una fecha</div>
             </div>
+
             <div class="col-12 mt-4">
               <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>GUARDAR PRODUCTO
               </button>
             </div>
+
           </form>
         </div>
       </div>
@@ -67,8 +96,9 @@
         <h4 class="m-0 fw-bold"><i class="bi bi-collection text-success"></i> Catálogo</h4>
         <span class="badge bg-success rounded-pill" id="totalMsg">0 Items</span>
       </div>
+
       <div id="contenedor" class="row g-3">
-        </div>
+      </div>
     </div>
   </div>
 </div>
