@@ -48,6 +48,6 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(3000, () => {
-  console.log("🚀 Sistema Financiero iniciado en: http://localhost:3000");
+server.listen(3001, () => {
+  console.log("🚀 Sistema Financiero iniciado en: http://localhost:3001");
 });

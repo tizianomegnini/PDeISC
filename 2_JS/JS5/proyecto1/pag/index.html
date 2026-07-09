@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión PRO de Alumnos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; }
+        .info-text { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
+        .table-container { background: var(--bs-body-bg); border-radius: 8px; overflow: hidden; }
+        /* Ajuste para que las acciones en móviles sean accesibles */
+        .btn-action { min-width: 80px; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <header class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-primary fw-bold">🚀 Gestión Pro</h1>
+        <button id="btnTheme" class="btn btn-outline-secondary btn-sm">Modo Dark/Light</button>
+    </header>
+
+    <div class="card p-4 shadow-sm mb-5 border-0">
+        <form id="formAlumno" class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label">Nombre</label>
+                <input id="nombre" class="form-control" placeholder="Ej: Juan" required>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Apellido</label>
+                <input id="apellido" class="form-control" placeholder="Ej: Perez" required>
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label">Edad</label>
+                <input id="edad" type="number" class="form-control" placeholder="1-120" required>
+            </div>
+            <div class="col-12 col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-success w-100">Agregar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-3">ID</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Edad</th>
+                        <th class="text-end pe-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0"><h5 class="modal-title">¿Eliminar alumno?</h5></div>
+            <div class="modal-body">Esta acción es irreversible y borrará los datos del servidor.</div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API = "http://localhost:3000/alumnos";
+    let idAEliminar = null;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+    // Alternar tema
+    document.getElementById('btnTheme').addEventListener('click', () => {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-bs-theme');
+        html.setAttribute('data-bs-theme', current === 'dark' ? 'light' : 'dark');
+    });
+
+    // Función global para mostrar alertas
+    function showToast(msg, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} show`;
+        toast.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Cargar datos
+    async function cargar() {
+        try {
+            const res = await fetch(API, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'get' }) });
+            const data = await res.json();
+            const tabla = document.getElementById('tabla');
+            tabla.innerHTML = data.map(a => `
+                <tr>
+                    <td class="ps-3">${a.id}</td>
+                    <td>${a.nombre}</td>
+                    <td>${a.apellido}</td>
+                    <td>${a.edad}</td>
+                    <td class="text-end pe-3">
+                        <button class="btn btn-outline-danger btn-sm btn-action" onclick="prepararEliminacion(${a.id})">Eliminar</button>
+                    </td>
+                </tr>`).join('');
+        } catch (e) { showToast('Error al conectar con la API', 'danger'); }
+    }
+
+    // Guardar nuevo
+    document.getElementById('formAlumno').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('nombre').value.trim();
+        const apellido = document.getElementById('apellido').value.trim();
+        const edad = parseInt(document.getElementById('edad').value);
+
+        // Validaciones mejoradas
+        if (nombre.length < 3 || apellido.length < 3) return showToast('Nombres muy cortos', 'warning');
+        
+        await fetch(API, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ action: 'add', nombre, apellido, edad }) 
+        });
+        
+        document.getElementById('formAlumno').reset();
+        showToast('Alumno registrado');
+        cargar();
+    });
+
+    function prepararEliminacion(id) {
+        idAEliminar = id;
+        modal.show();
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        await fetch(API, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ action: 'delete', id: idAEliminar }) 
+        });
+        modal.hide();
+        showToast('Alumno eliminado');
+        cargar();
+    });
+
+    cargar();
+</script>
+</body>
+</html>

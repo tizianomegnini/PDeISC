@@ -1,17 +1,24 @@
+/**
+ * Referencias a elementos del DOM
+ */
 const form = document.getElementById("form");
 const contenedor = document.getElementById("contenedor");
 const totalMsg = document.getElementById("totalMsg");
 
+/**
+ * --- MÉTODOS DE ALMACENAMIENTO ---
+ * 1. PERSISTENCIA: localStorage (db_sport)
+ * 2. MEMORIA: Array 'productos' (Actúa como caché rápida y fuente de verdad en tiempo real)
+ */
 let productos = JSON.parse(localStorage.getItem("db_sport")) || [];
 
-// --- VALIDACIÓN Y LIMPIEZA EN TIEMPO REAL ---
+/**
+ * --- VALIDACIÓN Y LIMPIEZA EN TIEMPO REAL ---
+ */
 form.querySelectorAll("input, textarea, select").forEach(el => {
     el.addEventListener("input", () => {
-        // Limpiamos el error personalizado apenas el usuario escribe
         el.setCustomValidity("");
         el.classList.remove("is-invalid");
-        
-        // Damos feedback visual de que el campo está ok
         if (el.checkValidity()) {
             el.classList.add("is-valid");
         } else {
@@ -20,38 +27,37 @@ form.querySelectorAll("input, textarea, select").forEach(el => {
     });
 });
 
-// --- MANEJO DEL ENVÍO ---
+/**
+ * --- MANEJO DEL ENVÍO ---
+ */
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    // 1. Validar campos vacíos (Nativo)
     if (!form.checkValidity()) {
         form.classList.add("was-validated");
-        // El navegador mostrará automáticamente el mensaje de "Completa este campo" 
-        // en el primer campo que falle gracias al comportamiento nativo de HTML5
         return;
     }
 
-    // 2. Procesar datos
     const data = new FormData(form);
     const nuevoProducto = Object.fromEntries(data.entries());
     nuevoProducto.codigo = nuevoProducto.codigo.toUpperCase().trim();
 
-    // 3. Validar Duplicados
+    // Validar duplicidad
     const codigoInput = document.getElementById("codigo");
     if (productos.some(p => p.codigo === nuevoProducto.codigo)) {
         codigoInput.setCustomValidity("El código ya existe.");
         codigoInput.classList.add("is-invalid");
         form.classList.add("was-validated");
-        
-        // Mostrar mensaje específico en el feedback
         const feedback = codigoInput.nextElementSibling;
-        if (feedback) feedback.textContent = "❌ Este código ya está registrado en el inventario.";
+        if (feedback) feedback.textContent = "Este código ya está registrado en el inventario.";
         return;
     }
 
-    // 4. Guardado
+    // --- ALMACENAMIENTO DOBLE ---
+    // 1. Guardado en Array (Memoria activa)
     productos.push(nuevoProducto);
+    
+    // 2. Guardado en LocalStorage (Persistencia)
     localStorage.setItem("db_sport", JSON.stringify(productos));
 
     try {
@@ -61,7 +67,7 @@ form.addEventListener("submit", async (e) => {
             body: JSON.stringify(nuevoProducto)
         });
     } catch (err) {
-        console.warn("Servidor no disponible, guardado localmente.");
+        console.warn("Servidor no disponible, solo se guardó en memoria y localStorage.");
     }
 
     form.reset();
@@ -71,6 +77,9 @@ form.addEventListener("submit", async (e) => {
     render();
 });
 
+/**
+ * --- RENDERIZADO ---
+ */
 function render() {
     contenedor.innerHTML = "";
     totalMsg.innerText = `${productos.length} Items`;
@@ -99,5 +108,11 @@ function render() {
             </div>`;
     });
 }
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-bs-theme');
+    html.setAttribute('data-bs-theme', currentTheme === 'dark' ? 'light' : 'dark');
+});
 
 render();

@@ -1,6 +1,12 @@
+/**
+ * --- CONFIGURACIÓN Y REFERENCIAS ---
+ */
 const form = document.getElementById("form");
 
-// --- LIMPIEZA AUTOMÁTICA DE ERRORES AL ESCRIBIR ---
+/**
+ * --- LIMPIEZA AUTOMÁTICA DE ERRORES AL ESCRIBIR ---
+ * Asigna eventos para resetear validaciones al interactuar con los inputs.
+ */
 form.querySelectorAll("input, select").forEach(el => {
     el.addEventListener("input", () => {
         el.setCustomValidity("");
@@ -8,24 +14,29 @@ form.querySelectorAll("input, select").forEach(el => {
     });
 });
 
-// --- SUBMIT DEL FORMULARIO ---
+/**
+ * --- SUBMIT DEL FORMULARIO ---
+ * Maneja la lógica de envío asíncrono.
+ * NOTA: Aquí se utiliza el MÉTODO 3 (el más moderno y eficiente).
+ */
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    // 1. Limpiar errores previos
+    // Limpiar errores previos
     form.querySelectorAll("input, select").forEach(i => i.setCustomValidity(""));
 
-    // 2. Validación nativa (campos obligatorios)
-    // Si falta algo, el navegador marca los campos y detiene el flujo
+    // Validación nativa
     if (!form.checkValidity()) {
         form.classList.add("was-validated");
         return;
     }
 
+    // --- LECTURA DE DATOS (MÉTODO 3: FormData + Object.fromEntries) ---
+    const data = Object.fromEntries(new FormData(form));
+
     // 3. Verificación de duplicados
     const resCheck = await fetch("/usuarios");
     const usuarios = await resCheck.json();
-    const data = Object.fromEntries(new FormData(form));
 
     const duplicado = usuarios.find(u => 
         u.dni === data.dni || 
@@ -34,20 +45,18 @@ form.addEventListener("submit", async (e) => {
     );
 
     if (duplicado) {
-        // Identificar el campo conflictivo
         let campoErroneo = duplicado.dni === data.dni ? "dni" : 
                            (duplicado.cuil === data.cuil ? "cuil" : "cbu");
         
         const inputErroneo = document.getElementById(campoErroneo);
         
-        // Aplicar error visual sin usar alert
         inputErroneo.setCustomValidity("Este dato ya se encuentra registrado.");
         inputErroneo.classList.add("is-invalid");
         form.classList.add("was-validated");
         
         const feedback = inputErroneo.nextElementSibling;
         if (feedback && feedback.classList.contains('invalid-feedback')) {
-            feedback.textContent = `❌ Este ${campoErroneo.toUpperCase()} ya está en uso.`;
+            feedback.textContent = `Este ${campoErroneo.toUpperCase()} ya está en uso.`;
         }
         return;
     }
@@ -64,7 +73,33 @@ form.addEventListener("submit", async (e) => {
     cargarUsuarios();
 });
 
-// --- RENDERIZADO COMPLETO ---
+/**
+ * --- DEMOSTRACIÓN DE LAS 3 FORMAS DE LECTURA ---
+ * Úsalo para explicarle al profesor las alternativas.
+ */
+function demostrarLecturas() {
+    // MÉTODO 1: Acceso Manual (Id por Id)
+    const manual = {
+        nombre: document.getElementById("nombre")?.value,
+        dni: document.getElementById("dni")?.value
+    };
+    console.log("Forma 1 (Manual):", manual);
+
+    // MÉTODO 2: Bucle sobre form.elements
+    const coleccion = {};
+    for (let campo of form.elements) {
+        if (campo.name) coleccion[campo.name] = campo.value;
+    }
+    console.log("Forma 2 (form.elements):", coleccion);
+
+    // MÉTODO 3: FormData 
+    const moderno = Object.fromEntries(new FormData(form));
+    console.log("Forma 3 (FormData):", moderno);
+}
+
+/**
+ * --- RENDERIZADO COMPLETO ---
+ */
 async function cargarUsuarios() {
     const res = await fetch("/usuarios");
     const data = await res.json();
@@ -102,7 +137,9 @@ async function cargarUsuarios() {
     });
 }
 
-// --- UTILIDADES ---
+/**
+ * --- UTILIDADES ---
+ */
 document.getElementById('themeBtn').addEventListener('click', () => {
     const html = document.documentElement;
     html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
@@ -115,4 +152,5 @@ mainContentPanel.addEventListener("scroll", controlarScroll);
 window.addEventListener("scroll", controlarScroll);
 scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
+// Carga inicial
 cargarUsuarios();

@@ -1,94 +1,88 @@
-// Clave utilizada para guardar y recuperar los datos en localStorage
+/**
+ * ==============================================================================
+ * SISTEMA DE GESTIÓN DE EMPLEADOS - CONFIGURACIÓN Y PERSISTENCIA
+ * ==============================================================================
+ */
+
+// La clave única utilizada para identificar nuestros datos en el localStorage
 const DB_KEY = "db_empresa_x_final";
 
-// Se obtienen los empleados guardados en localStorage (si no hay, inicia array vacío)
+// Recuperar los datos del localStorage. Si no existen, inicializa un array vacío.
 let empleados = JSON.parse(localStorage.getItem(DB_KEY)) || [];
 
-// Referencias a elementos del DOM
-const form = document.getElementById("formEmpresa"); // Formulario principal
-const lista = document.getElementById("listaEmpleados"); // Contenedor donde se renderizan empleados
-const totalDisplay = document.getElementById("total"); // Muestra cantidad total de empleados
+// Referencias a los elementos principales del DOM para interactuar con la interfaz
+const form = document.getElementById("formEmpresa");
+const lista = document.getElementById("listaEmpleados");
+const totalDisplay = document.getElementById("total");
 
-/* =========================
-   UTILIDADES
-========================= */
+/* ==============================================================================
+   UTILIDADES (Funciones de apoyo)
+============================================================================== */
 
-// Elimina espacios al inicio y al final de un texto
+/** Elimina espacios en blanco al inicio y final de una cadena de texto */
 const cleanText = (txt) => txt.trim();
 
-// Valida formato de email usando expresión regular
-const validateEmail = (mail) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail);
+/** Valida un email usando una Expresión Regular básica */
+const validateEmail = (mail) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail);
 
-// Calcula la edad real a partir de una fecha de nacimiento (YYYY-MM-DD)
+/** Calcula la edad exacta comparando la fecha de nacimiento con la fecha actual */
 const calcularEdad = (fechaNac) => {
-  const hoy = new Date(); // Fecha actual
-  const nac = new Date(fechaNac); // Fecha de nacimiento
-  let edad = hoy.getFullYear() - nac.getFullYear(); // Diferencia de años
-  const m = hoy.getMonth() - nac.getMonth(); // Diferencia de meses
+  const hoy = new Date();
+  const nac = new Date(fechaNac);
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const m = hoy.getMonth() - nac.getMonth();
 
-  // Si todavía no cumplió años este año, se resta 1
+  // Ajuste si el cumpleaños aún no ocurre en el año actual
   if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
-
-  return edad; // Retorna edad calculada
+  return edad;
 };
 
-/* =========================
-   SISTEMA DE ERRORES INLINE
-========================= */
+/* ==============================================================================
+   SISTEMA DE ERRORES INLINE (Validación visual)
+============================================================================== */
 
-// Muestra un mensaje de error debajo del campo indicado
+/** Muestra un mensaje de error debajo del campo indicado */
 const showError = (fieldId, msg) => {
-  clearError(fieldId); // Primero limpia error previo si existe
+  clearError(fieldId); // Limpiar error previo
+  const field = document.getElementById(fieldId);
+  if (!field) return;
 
-  const field = document.getElementById(fieldId); // Campo del formulario
-  if (!field) return; // Si no existe, termina
-
-  field.classList.add("is-invalid"); // Marca el campo como inválido (Bootstrap)
-
-  // Crea el mensaje de error
+  field.classList.add("is-invalid"); // Clase de Bootstrap para borde rojo
   const div = document.createElement("div");
-  div.className = "invalid-feedback d-block"; // Clase de Bootstrap para feedback
-  div.id = `error-${fieldId}`; // ID único para el error
-  div.textContent = msg; // Texto del error
+  div.className = "invalid-feedback d-block";
+  div.id = `error-${fieldId}`;
+  div.textContent = msg;
 
-  // Inserta el error debajo del campo
-  field.parentElement.appendChild(div);
+  field.parentElement.appendChild(div); // Insertar mensaje en el DOM
 };
 
-// Elimina el error de un campo
+/** Elimina el estado de error visual de un campo específico */
 const clearError = (fieldId) => {
   const field = document.getElementById(fieldId);
-
-  // Quita clase de error
   if (field) field.classList.remove("is-invalid");
 
-  // Elimina el mensaje si existe
   const prev = document.getElementById(`error-${fieldId}`);
   if (prev) prev.remove();
 };
 
-// Limpia todos los errores del formulario
+/** Limpia todos los mensajes de error del formulario antes de una nueva validación */
 const clearAllErrors = () => {
-  // Quita clase de error de todos los campos
   form.querySelectorAll(".is-invalid").forEach(el => el.classList.remove("is-invalid"));
-
-  // Elimina todos los mensajes de error
   form.querySelectorAll(".invalid-feedback").forEach(el => el.remove());
 };
 
-/* =========================
-   FILTROS VISUALES
-========================= */
+/* ==============================================================================
+   FILTROS DE ENTRADA (Validación en tiempo real)
+============================================================================== */
 
-// Aplica un filtro a un input para permitir solo ciertos caracteres
+/** Restringe qué teclas puede presionar el usuario en un input según una RegEx */
 const setFilter = (id, regex) => {
   document.getElementById(id)?.addEventListener("keypress", (e) => {
-    if (!regex.test(e.key)) e.preventDefault(); // Bloquea tecla si no cumple regex
+    if (!regex.test(e.key)) e.preventDefault();
   });
 };
 
-// Filtros aplicados a cada campo
+// Aplicación de filtros para evitar caracteres inválidos en campos numéricos o nombres
 setFilter("nombre",       /^[a-zA-ZñÑáéíóúÁÉÍÓÚ ]+$/);
 setFilter("apellido",     /^[a-zA-ZñÑáéíóúÁÉÍÓÚ ]+$/);
 setFilter("nacionalidad", /^[a-zA-ZñÑáéíóúÁÉÍÓÚ ]+$/);
@@ -98,50 +92,42 @@ setFilter("tel",          /^[0-9+ ]+$/);
 setFilter("edad",         /^[0-9]+$/);
 setFilter("cantHijos",    /^[0-9]+$/);
 
-/* =========================
-   VALIDACIÓN CRUZADA EDAD / NACIMIENTO
-========================= */
+/* ==============================================================================
+   VALIDACIÓN CRUZADA (Edad vs. Fecha Nacimiento)
+============================================================================== */
 
-// Verifica que la edad coincida con la fecha de nacimiento
+/** Sincroniza el campo edad con la fecha de nacimiento ingresada */
 const validarEdadNacimiento = () => {
   const edadInput = document.getElementById("edad");
   const nacInput  = document.querySelector("[name='nacimiento']");
 
-  // Si alguno está vacío, no valida
   if (!edadInput.value || !nacInput.value) return;
 
   const edadIngresada = parseInt(edadInput.value);
   const edadReal      = calcularEdad(nacInput.value);
 
-  // Si no coinciden, muestra error
   if (edadIngresada !== edadReal) {
     showError("edad", `La edad no coincide con la fecha de nacimiento (debería ser ${edadReal}).`);
   } else {
-    clearError("edad"); // Si coincide, limpia error
+    clearError("edad");
   }
 };
 
-// Se ejecuta cuando cambia la edad
-document.getElementById("edad")
-  ?.addEventListener("change", validarEdadNacimiento);
+// Listeners para ejecutar la validación al cambiar cualquiera de los dos campos
+document.getElementById("edad")?.addEventListener("change", validarEdadNacimiento);
+document.querySelector("[name='nacimiento']")?.addEventListener("change", validarEdadNacimiento);
 
-// Se ejecuta cuando cambia la fecha de nacimiento
-document.querySelector("[name='nacimiento']")
-  ?.addEventListener("change", validarEdadNacimiento);
+/* ==============================================================================
+   LÓGICA DE INTERFAZ (Campo hijos)
+============================================================================== */
 
-/* =========================
-   MOSTRAR INPUT HIJOS
-========================= */
-
-// Detecta cambios en el formulario
+/** Muestra u oculta el campo de cantidad de hijos dinámicamente */
 form.addEventListener("change", (e) => {
   if (e.target.name === "hijos") {
     const mostrar = e.target.value === "Si";
-
-    // Muestra u oculta el input de cantidad de hijos
     document.getElementById("inputCantHijos").style.display = mostrar ? "block" : "none";
 
-    // Si no tiene hijos, resetea valor
+    // Si elige "No", reseteamos la cantidad a 0 para mantener consistencia
     if (!mostrar) {
       document.getElementById("cantHijos").value = "0";
       clearError("cantHijos");
@@ -149,20 +135,18 @@ form.addEventListener("change", (e) => {
   }
 });
 
-/* =========================
-   SUBMIT + VALIDACIÓN
-========================= */
+/* ==============================================================================
+   PROCESAMIENTO DEL FORMULARIO (Submit)
+============================================================================== */
 
-// Evento al enviar formulario
 form.addEventListener("submit", (e) => {
-  e.preventDefault(); // Evita recarga de página
+  e.preventDefault(); // Evita que la página se recargue
+  clearAllErrors();
 
-  clearAllErrors(); // Limpia errores previos
-
-  // Convierte los datos del form en objeto
+  // Recolectar datos del form en un objeto
   const data = Object.fromEntries(new FormData(form).entries());
 
-  // Sanitizar datos (limpiar espacios)
+  // Limpieza inicial de strings
   data.nombre       = cleanText(data.nombre);
   data.apellido     = cleanText(data.apellido);
   data.mail         = cleanText(data.mail).toLowerCase();
@@ -174,18 +158,10 @@ form.addEventListener("submit", (e) => {
   const cantHijos = parseInt(data.cantidadHijos) || 0;
   let hayError    = false;
 
-  // VALIDACIONES
-
-  if (!data.nombre) {
-    showError("nombre", "El nombre es obligatorio.");
-    hayError = true;
-  }
-
-  if (!data.apellido) {
-    showError("apellido", "El apellido es obligatorio.");
-    hayError = true;
-  }
-
+  // --- BLOQUE DE VALIDACIONES ---
+  if (!data.nombre) { showError("nombre", "El nombre es obligatorio."); hayError = true; }
+  if (!data.apellido) { showError("apellido", "El apellido es obligatorio."); hayError = true; }
+  
   if (!data.edad || isNaN(edad) || edad < 18 || edad > 80) {
     showError("edad", "La edad debe estar entre 18 y 80 años.");
     hayError = true;
@@ -196,90 +172,69 @@ form.addEventListener("submit", (e) => {
       hayError = true;
     }
   }
-
-  if (!data.nacimiento) {
-    showError("nacimiento", "La fecha de nacimiento es obligatoria.");
+  // Validaciones
+  //nacimiento
+  if (!data.nacimiento) 
+    { showError("nacimiento", "La fecha de nacimiento es obligatoria."); 
+      ayError = true; }
+  //dni
+  if (!data.dni || data.dni.length !== 8) 
+    { showError("dni", "El DNI debe tener exactamente 8 dígitos."); 
+      hayError = true; }
+  //cuit
+  if (!data.cuit || data.cuit.length !== 11) 
+    { showError("cuit", "El CUIT debe tener exactamente 11 dígitos."); 
+      hayError = true; }
+  //mail
+  if (!data.mail || !validateEmail(data.mail)) 
+    { showError("mail", "Ingresá un email válido."); 
+      hayError = true; }
+  //telefono
+  if (!data.telefono) 
+    { showError("tel", "El teléfono es obligatorio."); 
+      hayError = true; }
+  //nacionalidad
+  if (!data.nacionalidad)  
+    { showError("nacionalidad", "La nacionalidad es obligatoria."); 
+      hayError = true; }
+  //hijos
+  if (data.hijos === "Si") {
+  // Verificamos si el número es inválido (no es número, es menor a 1 o mayor a 70)
+  if (isNaN(cantHijos) || cantHijos < 1 || cantHijos > 70) {
+    showError("cantHijos", "La cantidad debe ser entre 1 y 70.");
     hayError = true;
   }
+}
 
-  if (!data.dni || data.dni.length !== 8) {
-    showError("dni", "El DNI debe tener exactamente 8 dígitos.");
-    hayError = true;
-  }
+  // Validación de duplicados (evita repetir registros existentes)
+  if (data.dni && empleados.some(emp => emp.dni === data.dni)) { showError("dni", "Ya existe un empleado con ese DNI."); hayError = true; }
+  if (data.mail && empleados.some(emp => emp.mail === data.mail)) { showError("mail", "Ese email ya está registrado."); hayError = true; }
+  if (data.cuit && empleados.some(emp => emp.cuit === data.cuit)) { showError("cuit", "Ese CUIT ya existe."); hayError = true; }
 
-  if (!data.cuit || data.cuit.length !== 11) {
-    showError("cuit", "El CUIT debe tener exactamente 11 dígitos.");
-    hayError = true;
-  }
+  if (hayError) return; // Si hay errores, detenemos el proceso
 
-  if (!data.mail || !validateEmail(data.mail)) {
-    showError("mail", "Ingresá un email válido.");
-    hayError = true;
-  }
-
-  if (!data.telefono) {
-    showError("tel", "El teléfono es obligatorio.");
-    hayError = true;
-  }
-
-  if (!data.nacionalidad) {
-    showError("nacionalidad", "La nacionalidad es obligatoria.");
-    hayError = true;
-  }
-
-  if (data.hijos === "Si" && cantHijos < 1) {
-    showError("cantHijos", "Indicá al menos 1 hijo.");
-    hayError = true;
-  }
-
-  // VALIDACIÓN DE DUPLICADOS
-
-  if (data.dni && data.dni.length === 8 && empleados.some(emp => emp.dni === data.dni)) {
-    showError("dni", "Ya existe un empleado con ese DNI.");
-    hayError = true;
-  }
-
-  if (data.mail && validateEmail(data.mail) && empleados.some(emp => emp.mail === data.mail)) {
-    showError("mail", "Ese email ya está registrado.");
-    hayError = true;
-  }
-
-  if (data.cuit && data.cuit.length === 11 && empleados.some(emp => emp.cuit === data.cuit)) {
-    showError("cuit", "Ese CUIT ya existe.");
-    hayError = true;
-  }
-
-  // Si hay errores, corta ejecución
-  if (hayError) return;
-
-  // Normaliza cantidad de hijos
+  // --- PERSISTENCIA Y LIMPIEZA ---
   data.cantidadHijos = data.hijos === "Si" ? cantHijos : 0;
+  empleados.push(data); // Agregamos al array global
+  localStorage.setItem(DB_KEY, JSON.stringify(empleados)); // Guardamos en localStorage
 
-  // Guarda en array
-  empleados.push(data);
-
-  // Guarda en localStorage
-  localStorage.setItem(DB_KEY, JSON.stringify(empleados));
-
-  // Resetea formulario
+  // Reseteo de UI
   form.reset();
   clearAllErrors();
   document.getElementById("inputCantHijos").style.display = "none";
-
-  render(); // Vuelve a renderizar lista
+  render(); // Actualizamos la vista
 });
 
-/* =========================
-   RENDER
-========================= */
+/* ==============================================================================
+   RENDERIZADO (Visualización de datos)
+============================================================================== */
 
-// Muestra todos los empleados en pantalla
+/** Limpia la lista actual y redibuja todas las tarjetas (cards) de empleados */
 function render() {
-  lista.innerHTML = ""; // Limpia lista
-  totalDisplay.innerText = empleados.length; // Actualiza contador
+  lista.innerHTML = "";
+  totalDisplay.innerText = empleados.length;
 
   empleados.forEach(emp => {
-    // Inserta cada tarjeta de empleado
     lista.innerHTML += `
     <div class="col-12 col-md-6">
       <div class="card employee-card p-3 shadow-sm border-secondary h-100">
@@ -319,9 +274,7 @@ function render() {
           </div>
 
           <div class="col-12 mt-1">
-            <span class="badge ${emp.hijos === 'Si'
-              ? 'bg-primary'
-              : 'bg-dark border border-secondary text-secondary'} w-100">
+            <span class="badge ${emp.hijos === 'Si' ? 'bg-primary' : 'bg-dark border border-secondary text-secondary'} w-100">
               HIJOS: ${emp.hijos === 'Si' ? emp.cantidadHijos : 'NINGUNO'}
             </span>
           </div>
@@ -331,6 +284,11 @@ function render() {
     `;
   });
 }
-
-// Ejecuta render al cargar la página
+// Reemplaza tu bloque actual de evento click por este:
+document.getElementById('themeBtn').addEventListener('click', () => {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-bs-theme');
+    html.setAttribute('data-bs-theme', currentTheme === 'dark' ? 'light' : 'dark');
+});
+// Renderizado inicial al cargar la página
 render();
