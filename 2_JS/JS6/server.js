@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
+import fs from "fs";
 
 const app = express();
 const PORT = 3000;
@@ -81,7 +82,7 @@ app.post('/api/guardar-score', (req, res) => {
         });
     }
 
-    const sql = 'INSERT INTO scores (nombre, puntos) VALUES (?, ?)';
+    const sql = 'INSERT INTO ranking (nombre, puntaje) VALUES (?, ?)';
 
     db.query(sql, [nombre, puntos], (err) => {
 
@@ -105,7 +106,7 @@ app.post('/api/guardar-score', (req, res) => {
 // ==========================================================
 app.get('/api/top', (req, res) => {
 
-    const sql = 'SELECT nombre, puntos FROM scores ORDER BY puntos DESC LIMIT 5';
+    const sql = 'SELECT nombre, puntaje FROM ranking ORDER BY puntaje DESC LIMIT 5';
 
     db.query(sql, (err, results) => {
 
@@ -184,7 +185,33 @@ app.post('/api/pdf', (req, res) => {
     doc.end();
 
 });
+app.post("/Descargas", (req, res) => {
+    const { nombre, puntaje } = req.body;
 
+    const fecha = new Date().toLocaleString().replace(/[/:]/g, "-");
+
+    const contenido = `
+Jugador: ${nombre}
+Puntaje: ${puntaje}
+Fecha: ${fecha}
+-------------------------
+`;
+
+    const nombreArchivo = `descarga_${nombre}_${Date.now()}.txt`;
+
+    fs.writeFile(
+        path.join(Descargas, nombreArchivo),
+        contenido,
+        (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: "Error al guardar" });
+            }
+
+            res.json({ ok: true });
+        }
+    );
+});
 // ==========================================================
 // INICIAR SERVIDOR
 // ==========================================================

@@ -233,7 +233,14 @@ async function cargarRanking() {
         data.slice(0, 5).forEach((p, i) => {
             const li = document.createElement("li");
             li.className = "list-group-item";
-            li.innerHTML = `<span>${i + 1}. ${p.nombre}</span> <strong>${p.puntos} pts</strong>`;
+            li.innerHTML = `
+  <span>${i + 1}. ${p.nombre}</span> 
+  <strong>${p.puntaje} pts</strong>
+  <button class="btn btn-sm btn-primary ms-2"
+    onclick='descargarPDF(${JSON.stringify(p.nombre)}, ${p.puntaje})'>
+    PDF
+  </button>
+`;
             $ranking.appendChild(li);
         });
 
@@ -242,31 +249,29 @@ async function cargarRanking() {
         $ranking.innerHTML = `<li class="list-group-item text-danger text-center">Error al cargar</li>`;
     }
 }
-document.getElementById("btnPDF").addEventListener("click", async () => {
+function descargarPDF(nombre, puntaje) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-    const nombre = document.getElementById("nombreJugador").value;
-    const puntos = intentos * 10;
+  const fecha = new Date().toLocaleDateString();
 
-    const response = await fetch("/api/pdf", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            nombre,
-            puntos
-        })
-    });
+  // PDF
+  doc.setFontSize(18);
+  doc.text("🏆 Ahorcado PRO", 20, 20);
+  doc.line(20, 25, 190, 25);
+  doc.text(`Jugador: ${nombre}`, 20, 40);
+  doc.text(`Puntaje: ${puntaje}`, 20, 50);
+  doc.text(`Fecha: ${fecha}`, 20, 60);
 
-    const blob = await response.blob();
+  doc.save(`puntaje_${nombre}.pdf`);
 
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "puntaje.pdf";
-    a.click();
-
-    window.URL.revokeObjectURL(url);
-});
+  // 👇 REGISTRAR EN EL SERVIDOR
+  fetch("/api/registrar-descarga", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ nombre, puntaje })
+  }).catch(err => console.error("Error registrando descarga:", err));
+}
 iniciarJuego();
