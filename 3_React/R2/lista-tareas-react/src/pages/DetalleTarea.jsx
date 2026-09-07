@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 
 function DetalleTarea({
   tareas,
-  eliminarTarea,
+  solicitarEliminar,
   modoOscuro
 }) {
 
@@ -17,16 +17,26 @@ function DetalleTarea({
     return (
       <div className="container-fluid px-3 px-md-5 py-5">
 
-        <div className="alert alert-danger">
-          La tarea no existe.
-        </div>
+        <div className="empty-state">
 
-        <Link
-          to="/"
-          className="btn btn-secondary"
-        >
-          ← Volver al inicio
-        </Link>
+          <div className="empty-icon">
+            🔍
+          </div>
+
+          <h3>Tarea no encontrada</h3>
+
+          <p className="text-secondary">
+            La tarea que buscás no existe.
+          </p>
+
+          <Link
+            to="/"
+            className="btn btn-primary"
+          >
+            Volver al inicio
+          </Link>
+
+        </div>
 
       </div>
     )
@@ -45,14 +55,13 @@ function DetalleTarea({
         </Link>
 
         <button
-          onClick={() => eliminarTarea(tarea.id)}
+          onClick={() => solicitarEliminar(tarea.id)}
           className="btn btn-outline-danger"
         >
           🗑️ Eliminar tarea
         </button>
 
       </div>
-
 
       <div className="detail-card">
 
@@ -84,9 +93,7 @@ function DetalleTarea({
 
         </div>
 
-
         <hr />
-
 
         <div className="detail-content">
 
@@ -102,7 +109,6 @@ function DetalleTarea({
 
           </div>
 
-
           <div className="detail-info">
 
             <div>
@@ -114,7 +120,6 @@ function DetalleTarea({
                 {tarea.fecha}
               </p>
             </div>
-
 
             <div>
               <h6>

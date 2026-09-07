@@ -3,7 +3,7 @@ import Tarea from '../components/Tarea'
 
 function Inicio({
   tareas,
-  eliminarTarea,
+  solicitarEliminar,
   descargarTareas,
   modoOscuro,
   setModoOscuro
@@ -11,8 +11,6 @@ function Inicio({
 
   return (
     <div className="container-fluid px-3 px-md-5 py-4">
-
-      {/* ENCABEZADO */}
 
       <header className="main-header mb-5">
 
@@ -32,7 +30,9 @@ function Inicio({
             onClick={() => setModoOscuro(!modoOscuro)}
             className="btn btn-outline-secondary"
           >
-            {modoOscuro ? '☀️ Modo claro' : '🌙 Modo oscuro'}
+            {modoOscuro
+              ? '☀️ Modo claro'
+              : '🌙 Modo oscuro'}
           </button>
 
           <button
@@ -53,9 +53,6 @@ function Inicio({
 
       </header>
 
-
-      {/* CONTADOR */}
-
       <div className="d-flex justify-content-between align-items-center mb-4">
 
         <h2 className="h4 fw-bold mb-0">
@@ -63,13 +60,13 @@ function Inicio({
         </h2>
 
         <span className="badge text-bg-secondary fs-6">
-          {tareas.length} {tareas.length === 1 ? 'tarea' : 'tareas'}
+          {tareas.length}{' '}
+          {tareas.length === 1
+            ? 'tarea'
+            : 'tareas'}
         </span>
 
       </div>
-
-
-      {/* LISTA */}
 
       {tareas.length === 0 ? (
 
@@ -107,7 +104,7 @@ function Inicio({
 
               <Tarea
                 tarea={tarea}
-                eliminarTarea={eliminarTarea}
+                solicitarEliminar={solicitarEliminar}
               />
 
             </div>

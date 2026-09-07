@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-function Tarea({ tarea, eliminarTarea }) {
+function Tarea({ tarea, solicitarEliminar }) {
 
   return (
     <div className="card task-card h-100">
@@ -27,16 +27,13 @@ function Tarea({ tarea, eliminarTarea }) {
 
         </div>
 
-
         <p className="card-text text-secondary task-description">
           {tarea.descripcion}
         </p>
 
-
         <small className="text-secondary mb-3">
           📅 {tarea.fecha}
         </small>
-
 
         <div className="mt-auto d-flex gap-2">
 
@@ -48,7 +45,7 @@ function Tarea({ tarea, eliminarTarea }) {
           </Link>
 
           <button
-            onClick={() => eliminarTarea(tarea.id)}
+            onClick={() => solicitarEliminar(tarea.id)}
             className="btn btn-outline-danger"
             title="Eliminar tarea"
           >

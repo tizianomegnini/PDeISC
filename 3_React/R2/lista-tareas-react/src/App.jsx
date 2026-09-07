@@ -23,6 +23,9 @@ function App() {
     return localStorage.getItem('modoOscuro') === 'true'
   })
 
+  // Tarea que se está intentando eliminar
+  const [tareaAEliminar, setTareaAEliminar] = useState(null)
+
   useEffect(() => {
     localStorage.setItem('tareas', JSON.stringify(tareas))
   }, [tareas])
@@ -42,19 +45,34 @@ function App() {
     ])
   }
 
-  const eliminarTarea = (id) => {
-
-    const confirmar = window.confirm(
-      '¿Estás seguro de que querés eliminar esta tarea?'
+  // Solamente abre la ventana de confirmación
+  const solicitarEliminar = (id) => {
+    const tarea = tareas.find(
+      (tarea) => tarea.id === id
     )
 
-    if (!confirmar) {
+    setTareaAEliminar(tarea)
+  }
+
+  // Elimina después de confirmar
+  const confirmarEliminacion = () => {
+
+    if (!tareaAEliminar) {
       return
     }
 
     setTareas((tareasActuales) =>
-      tareasActuales.filter((tarea) => tarea.id !== id)
+      tareasActuales.filter(
+        (tarea) => tarea.id !== tareaAEliminar.id
+      )
     )
+
+    setTareaAEliminar(null)
+  }
+
+  // Cancela la eliminación
+  const cancelarEliminacion = () => {
+    setTareaAEliminar(null)
   }
 
   const descargarTareas = () => {
@@ -88,7 +106,7 @@ function App() {
           element={
             <Inicio
               tareas={tareas}
-              eliminarTarea={eliminarTarea}
+              solicitarEliminar={solicitarEliminar}
               descargarTareas={descargarTareas}
               modoOscuro={modoOscuro}
               setModoOscuro={setModoOscuro}
@@ -101,7 +119,7 @@ function App() {
           element={
             <DetalleTarea
               tareas={tareas}
-              eliminarTarea={eliminarTarea}
+              solicitarEliminar={solicitarEliminar}
               modoOscuro={modoOscuro}
             />
           }
@@ -118,6 +136,65 @@ function App() {
         />
 
       </Routes>
+
+
+      {/* VENTANA DE CONFIRMACIÓN */}
+
+      {tareaAEliminar && (
+
+        <div
+          className="modal-backdrop-custom"
+          onClick={cancelarEliminacion}
+        >
+
+          <div
+            className="delete-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            <div className="delete-modal-icon">
+              🗑️
+            </div>
+
+            <h3 className="fw-bold">
+              ¿Eliminar tarea?
+            </h3>
+
+            <p className="text-secondary">
+              Vas a eliminar la tarea:
+            </p>
+
+            <div className="delete-task-name">
+              {tareaAEliminar.titulo}
+            </div>
+
+            <p className="text-secondary small">
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div className="d-flex justify-content-end gap-2 mt-4">
+
+              <button
+                className="btn btn-outline-secondary"
+                onClick={cancelarEliminacion}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="btn btn-danger"
+                onClick={confirmarEliminacion}
+              >
+                Eliminar
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
     </BrowserRouter>
   )
