@@ -89,7 +89,7 @@ function App() {
     const enlace = document.createElement('a')
 
     enlace.href = url
-    enlace.download = 'tareas.json'
+    enlace.download = 'tareas.txt'
 
     enlace.click()
 
