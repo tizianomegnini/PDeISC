@@ -8,7 +8,7 @@ import "../styles/experience.css";
  */
 export default function Achievements({ achievements }) {
   return (
-    <Section id="logros" title="Logros" index="04">
+    <Section id="logros" title="Logros" index="04" editKind="achievements">
       <div className="achievements__grid">
         {achievements.map((item) => (
           <article className="achievement card" key={item.id}>

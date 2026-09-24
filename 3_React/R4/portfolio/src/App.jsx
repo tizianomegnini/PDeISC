@@ -7,14 +7,19 @@ import Achievements from "./components/Achievements";
 import Projects from "./components/Projects";
 import Contact from "./components/Contact";
 import Footer from "./components/Footer";
+import BackToTop from "./components/BackToTop";
+import EditModeButton from "./components/EditModeButton";
+import PasswordPromptModal from "./components/PasswordPromptModal";
+import EditorModalHost from "./components/EditorModalHost";
 import { usePortfolioData } from "./hooks/usePortfolioData";
 
 /**
  * App
  * ---
- * Componente raíz: obtiene todos los datos del portfolio con el hook
- * usePortfolioData (Supabase si está configurado, si no datos locales)
- * y arma la página de una sola sección tras otra.
+ * Portfolio de una sola página. Cada sección tiene su propio botón
+ * "✎ Editar" (ver Section.jsx / SectionEditButton) que, junto con el
+ * candado flotante (EditModeButton), permite modificar el contenido
+ * sin salir de esta misma página ni tocar código — ver EditModeContext.
  */
 export default function App() {
   const { data, loading } = usePortfolioData();
@@ -29,9 +34,14 @@ export default function App() {
         <Experience experience={data.experience} />
         <Achievements achievements={data.achievements} />
         <Projects projects={data.projects} loading={loading} />
-        <Contact email={data.profile.email} />
+        <Contact profile={data.profile} />
       </main>
       <Footer profile={data.profile} />
+
+      <BackToTop />
+      <EditModeButton />
+      <PasswordPromptModal />
+      <EditorModalHost />
     </>
   );
 }

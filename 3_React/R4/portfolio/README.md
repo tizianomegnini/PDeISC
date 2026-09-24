@@ -1,34 +1,50 @@
-# Portfolio personal — React + Vite
+# Portfolio personal — React + Vite + Node/Express + MySQL
 
-Portfolio de una sola página construido con **React** y **Vite**. Incluye modo
-claro/oscuro, animaciones al hacer scroll, hooks personalizados, manejo de
-eventos y carga de datos opcional desde **Supabase** (base de datos Postgres).
+Portfolio de una sola página con **React** y **Vite**, conectado a un
+backend propio en **Node.js + Express** que guarda todo en **MySQL**.
+Incluye modo claro/oscuro, animaciones al hacer scroll, botón "volver
+arriba", hooks personalizados, manejo de eventos, y **edición inline**:
+un botón "✎ Editar" en cada sección para modificar el contenido sin
+tocar código, protegido con una contraseña que solo vos conocés.
+
+## Estructura general
+
+```
+/                  -> frontend (React + Vite) — esto es lo que ves en el navegador
+backend/           -> API en Node + Express + MySQL — ver backend/README.md
+```
+
+Son dos proyectos separados que se despliegan por separado (el frontend
+en un host como Vercel, el backend en un host como Railway), y se
+comunican por HTTP.
 
 ## Contenido del sitio
 
-- **Hero**: presentación principal, con animación de entrada.
-- **Sobre mí**: biografía y datos clave.
-- **Habilidades**: barras de progreso animadas, agrupadas por categoría.
-- **Experiencia**: línea de tiempo laboral.
-- **Logros**: certificaciones, premios y métricas destacadas.
-- **Proyectos**: grilla filtrable por categoría.
-- **Contacto**: formulario que guarda mensajes en Supabase (si está configurado).
+- **Hero**, **Sobre mí**, **Habilidades** (barras animadas), **Experiencia**
+  (línea de tiempo), **Logros**, **Proyectos** (con filtro por categoría) y
+  **Contacto** (enlaces directos a mail, GitHub y LinkedIn — sin formulario).
+- Botón flotante para volver al inicio de la página.
+- **Edición inline**: cada sección tiene un botón "✎ Editar" que abre un
+  modal para modificar esa sección directamente en la misma página. La
+  primera vez que se usa cualquiera de esos botones pide una contraseña
+  (definida en el backend, ver más abajo); una vez ingresada, queda
+  desbloqueado en ese navegador. El candado flotante (esquina inferior
+  izquierda) permite volver a bloquear la edición.
 
-## Estructura del proyecto
+## Estructura del frontend
 
 ```
 src/
-  components/     -> un componente por sección (Hero, Skills, Projects, etc.)
-  context/        -> ThemeContext (modo claro/oscuro)
-  hooks/          -> useReveal, useScrollInfo, usePortfolioData
-  lib/            -> cliente de Supabase
-  data/           -> datos de respaldo (fallbackData.js)
-  styles/         -> CSS por sección
-supabase/
-  schema.sql      -> tablas y políticas de seguridad para Supabase
+  components/          -> un componente por sección + Modal, EditModeButton, SectionEditButton
+  components/editors/  -> ProfileEditor y ApiListEditor (usados dentro de los modales)
+  context/             -> ThemeContext (modo claro/oscuro) y EditModeContext (edición inline)
+  hooks/                -> useReveal, useScrollInfo, usePortfolioData
+  lib/                  -> apiClient.js (cliente HTTP hacia el backend)
+  data/                 -> datos de respaldo (fallbackData.js), se usan si el backend no está configurado
+  styles/               -> CSS por sección
 ```
 
-## 1. Correr el proyecto localmente
+## 1. Correr el frontend localmente
 
 Requisitos: [Node.js](https://nodejs.org) 18 o superior.
 
@@ -37,36 +53,32 @@ npm install
 npm run dev
 ```
 
-Abrí `http://localhost:5173`.
+Abrí `http://localhost:5173`. Así, sin backend conectado, el sitio ya
+funciona completo usando `src/data/fallbackData.js`. Editá ese archivo
+con tus datos reales para empezar.
 
-## 2. Personalizar tu información
+## 2. Levantar el backend + MySQL (necesario para poder editar desde el sitio)
 
-Editá `src/data/fallbackData.js` con tus datos reales (nombre, bio, redes,
-habilidades, experiencia, logros y proyectos). El sitio funciona perfecto
-sin base de datos usando solo este archivo — el paso de Supabase (abajo)
-es opcional, para que puedas administrar proyectos/experiencia/logros/
-mensajes de contacto desde una base de datos real en vez de editar código.
+Todos los pasos detallados (crear la base, generar tu contraseña,
+correr el servidor, conectar el frontend) están en
+**`backend/README.md`**. Resumen rápido:
 
-## 3. (Opcional) Conectar una base de datos con Supabase
+```bash
+cd backend
+npm install
+cp .env.example .env
+# completá .env con tus datos de MySQL
+npm run hash-password   # genera tu ADMIN_PASSWORD_HASH (elegís vos la contraseña)
+npm start
+```
 
-1. Creá una cuenta gratuita en [supabase.com](https://supabase.com) y un
-   proyecto nuevo.
-2. En **SQL Editor**, pegá y ejecutá el contenido de `supabase/schema.sql`
-   (crea las tablas `projects`, `experience`, `achievements` y `messages`,
-   con las políticas de seguridad correspondientes).
-3. Cargá algunas filas de ejemplo en `projects`, `experience` y
-   `achievements` desde **Table Editor**.
-4. En **Project Settings → API**, copiá `Project URL` y `anon public key`.
-5. Copiá `.env.example` a `.env` y completá:
-   ```
-   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-   VITE_SUPABASE_ANON_KEY=tu-clave-anonima-publica
-   ```
-6. Reiniciá `npm run dev`. El hook `usePortfolioData` va a detectar las
-   variables y traer los datos desde Supabase automáticamente; si algo
-   falla, vuelve a usar `fallbackData.js` sin romper el sitio.
+Y en el `.env` de la raíz del proyecto (frontend):
 
-## 4. Subir el proyecto a GitHub
+```
+VITE_API_URL=http://localhost:4000/api
+```
+
+## 3. Subir el proyecto a GitHub
 
 ```bash
 git init
@@ -77,38 +89,30 @@ git remote add origin https://github.com/TU-USUARIO/TU-REPO.git
 git push -u origin main
 ```
 
-> Importante: el archivo `.env` está en `.gitignore` y **no** se sube al
-> repositorio (contiene tus claves). Configurá esas variables directamente
-> en el panel del host de despliegue (paso siguiente).
+> Los archivos `.env` (tanto el de la raíz como el de `/backend`) están
+> en `.gitignore` y no se suben al repositorio, porque tienen tus
+> contraseñas y claves. Esas variables se configuran directamente en el
+> panel de cada host de despliegue.
 
-## 5. Desplegar en un host web
+## 4. Desplegar
 
-### Opción recomendada: Vercel (gratis, detecta Vite automáticamente)
+### Frontend → Vercel
 
-1. Entrá a [vercel.com](https://vercel.com) e iniciá sesión con tu cuenta
-   de GitHub.
-2. **Add New → Project** y elegí el repositorio que acabás de subir.
-3. Vercel detecta automáticamente `npm run build` y la carpeta `dist`.
-4. Si usás Supabase, agregá las variables de entorno en
-   **Settings → Environment Variables**:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-5. **Deploy**. Vercel te da una URL pública (`https://tu-portfolio.vercel.app`).
+1. [vercel.com](https://vercel.com) → **Add New → Project** → elegí tu repo.
+   - Si tu proyecto no está en la raíz del repo, indicá el **Root
+     Directory** correcto (con `/`, no `\`).
+2. Variable de entorno: `VITE_API_URL` = la URL de tu backend + `/api`
+   (por ejemplo `https://tu-backend.up.railway.app/api`).
+3. **Deploy**.
 
-### Alternativa: Netlify
+### Backend + MySQL → Railway
 
-1. [netlify.com](https://netlify.com) → **Add new site → Import an existing project**.
-2. Conectá el repo de GitHub.
-3. Build command: `npm run build` — Publish directory: `dist`.
-4. Agregá las mismas variables de entorno en **Site settings → Environment variables**.
-5. **Deploy site**.
-
-Cualquiera de las dos opciones actualiza el sitio automáticamente cada vez
-que hacés `git push` a la rama principal.
+Instrucciones completas y detalladas en **`backend/README.md`**.
 
 ## Tecnologías usadas
 
-- React 18 + Vite
-- CSS con variables (tema claro/oscuro), sin frameworks de CSS
-- Supabase (Postgres + API) como base de datos opcional
-- IntersectionObserver API para animaciones de scroll
+- **Frontend**: React 18 + Vite, CSS con variables (tema claro/oscuro)
+  sin frameworks de CSS, IntersectionObserver para animaciones de scroll.
+- **Backend**: Node.js + Express, JWT (jsonwebtoken) + bcrypt para
+  proteger la edición con una única contraseña.
+- **Base de datos**: MySQL.

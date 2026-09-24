@@ -1,4 +1,5 @@
 import "../styles/hero.css";
+import SectionEditButton from "./SectionEditButton";
 
 /**
  * Hero
@@ -17,6 +18,10 @@ export default function Hero({ profile }) {
             <span className="hero__dot" aria-hidden="true" />
             Disponible para nuevos proyectos
           </p>
+
+          <div style={{ marginBottom: "0.75rem" }}>
+            <SectionEditButton kind="profile" label="Editar perfil" />
+          </div>
 
           <h1 className="hero__title">
             <span>Hola, soy</span> <span>{profile.name}.</span>{" "}

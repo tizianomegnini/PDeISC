@@ -12,7 +12,7 @@ import "../styles/about.css";
  */
 export default function Skills({ skillGroups }) {
   return (
-    <Section id="habilidades" title="Habilidades" index="02">
+    <Section id="habilidades" title="Habilidades" index="02" editKind="skills">
       <div className="skills__groups">
         {skillGroups.map((group) => (
           <div key={group.id}>

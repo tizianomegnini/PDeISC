@@ -9,7 +9,7 @@ import "../styles/experience.css";
  */
 export default function Experience({ experience }) {
   return (
-    <Section id="experiencia" title="Experiencia" index="03">
+    <Section id="experiencia" title="Experiencia" index="03" editKind="experience">
       <ol className="timeline">
         {experience.map((item, i) => (
           <li className="timeline__item" key={item.id}>

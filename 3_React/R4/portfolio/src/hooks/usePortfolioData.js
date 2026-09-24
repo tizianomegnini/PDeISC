@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
+import { apiGet, isApiConfigured } from "../lib/apiClient";
+import { useEditMode } from "../context/EditModeContext";
 import {
   profile as fallbackProfile,
   skillGroups as fallbackSkillGroups,
@@ -12,73 +13,82 @@ import {
  * usePortfolioData
  * -----------------
  * Centraliza la carga de TODA la información del portfolio (perfil,
- * habilidades, logros, experiencia y proyectos).
+ * habilidades, logros, experiencia y proyectos) desde el backend propio
+ * (Node + MySQL, ver /backend). Si el backend no está configurado
+ * (VITE_API_URL vacío) o alguna petición falla, usa el dato local
+ * correspondiente de src/data/fallbackData.js.
  *
- * Comportamiento:
- *  - Si Supabase está configurado (ver src/lib/supabaseClient.js), intenta
- *    traer cada tabla ("projects", "achievements", "experience", "skills").
- *  - Si Supabase NO está configurado, o si alguna consulta falla, usa
- *    automáticamente los datos de src/data/fallbackData.js, así el sitio
- *    nunca se rompe por falta de base de datos.
+ * También escucha `changeSignal` de EditModeContext: cada vez que se
+ * guarda algo desde uno de los editores (ver components/editors), este
+ * hook vuelve a pedir los datos, así los cambios se ven al instante sin
+ * recargar la página.
  *
- * @returns {{ data: object, loading: boolean, source: "supabase"|"fallback" }}
+ * @returns {{ data: object, loading: boolean }}
  */
 export function usePortfolioData() {
-  const [state, setState] = useState({
-    loading: true,
-    source: "fallback",
-    data: {
-      profile: fallbackProfile,
-      skillGroups: fallbackSkillGroups,
-      achievements: fallbackAchievements,
-      experience: fallbackExperience,
-      projects: fallbackProjects,
-    },
+  const { changeSignal } = useEditMode();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    profile: fallbackProfile,
+    skillGroups: fallbackSkillGroups,
+    achievements: fallbackAchievements,
+    experience: fallbackExperience,
+    projects: fallbackProjects,
   });
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      if (!isSupabaseConfigured) {
-        // Sin credenciales: nos quedamos con el estado inicial (fallback).
-        setState((prev) => ({ ...prev, loading: false }));
+      if (!isApiConfigured) {
+        setLoading(false);
         return;
       }
 
-      try {
-        const [{ data: projects, error: e1 }, { data: achievements, error: e2 }, { data: experience, error: e3 }] =
-          await Promise.all([
-            supabase.from("projects").select("*").order("created_at", { ascending: false }),
-            supabase.from("achievements").select("*"),
-            supabase.from("experience").select("*").order("start_date", { ascending: false }),
-          ]);
+      const [profile, skills, achievements, experience, projects] = await Promise.all([
+        apiGet("/profile").catch(() => null),
+        apiGet("/skills").catch(() => null),
+        apiGet("/achievements").catch(() => null),
+        apiGet("/experience").catch(() => null),
+        apiGet("/projects").catch(() => null),
+      ]);
 
-        if (e1 || e2 || e3) throw e1 || e2 || e3;
-        if (cancelled) return;
+      if (cancelled) return;
 
-        setState({
-          loading: false,
-          source: "supabase",
-          data: {
-            profile: fallbackProfile, // el perfil personal se mantiene estático a propósito
-            skillGroups: fallbackSkillGroups,
-            achievements: achievements?.length ? achievements : fallbackAchievements,
-            experience: experience?.length ? experience : fallbackExperience,
-            projects: projects?.length ? projects : fallbackProjects,
-          },
-        });
-      } catch (error) {
-        console.warn("No se pudo leer Supabase, se usan datos locales:", error.message);
-        if (!cancelled) setState((prev) => ({ ...prev, loading: false }));
-      }
+      setData({
+        profile: profile ?? fallbackProfile,
+        skillGroups: skillsToGroups(skills) ?? fallbackSkillGroups,
+        achievements: nonEmpty(achievements) ?? fallbackAchievements,
+        experience: nonEmpty(experience) ?? fallbackExperience,
+        projects: nonEmpty(projects)?.map(projectToUi) ?? fallbackProjects,
+      });
+      setLoading(false);
     }
 
     load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [changeSignal]);
 
-  return state;
+  return { data, loading };
+}
+
+function nonEmpty(rows) {
+  return rows && rows.length > 0 ? rows : null;
+}
+
+function projectToUi(row) {
+  return { ...row, repoUrl: row.repo_url, demoUrl: row.demo_url };
+}
+
+/** Agrupa la tabla plana "skills" (group_name, name, level) en el formato que usan los componentes. */
+function skillsToGroups(rows) {
+  if (!rows || rows.length === 0) return null;
+  const map = new Map();
+  rows.forEach((row) => {
+    if (!map.has(row.group_name)) map.set(row.group_name, { id: row.group_name, title: row.group_name, skills: [] });
+    map.get(row.group_name).skills.push({ name: row.name, level: row.level });
+  });
+  return Array.from(map.values());
 }

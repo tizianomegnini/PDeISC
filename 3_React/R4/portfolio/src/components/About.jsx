@@ -8,7 +8,7 @@ import "../styles/about.css";
  */
 export default function About({ profile }) {
   return (
-    <Section id="sobre-mi" title="Sobre mí" index="01">
+    <Section id="sobre-mi" title="Sobre mí" index="01" editKind="profile">
       <div className="about__grid">
         <div className="about__text">
           {profile.bio.map((paragraph, i) => (

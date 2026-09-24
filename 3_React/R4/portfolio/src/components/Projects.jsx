@@ -25,7 +25,7 @@ export default function Projects({ projects, loading }) {
   }, [projects, activeCategory]);
 
   return (
-    <Section id="proyectos" title="Proyectos" index="05">
+    <Section id="proyectos" title="Proyectos" index="05" editKind="projects">
       {loading && <p className="projects__status">Cargando proyectos…</p>}
 
       <div className="projects__filters" role="tablist" aria-label="Filtrar proyectos por categoría">
