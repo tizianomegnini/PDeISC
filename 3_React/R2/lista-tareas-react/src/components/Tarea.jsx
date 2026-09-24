@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-function Tarea({ tarea, solicitarEliminar }) {
+function Tarea({ tarea, solicitarEliminar, cambiarEstado }) {
 
   return (
     <div className="card task-card h-100">
@@ -37,22 +37,37 @@ function Tarea({ tarea, solicitarEliminar }) {
 
         <div className="mt-auto d-flex gap-2">
 
-          <Link
-            to={`/tarea/${tarea.id}`}
-            className="btn btn-primary flex-grow-1"
-          >
-            Ver
-          </Link>
+  <Link
+    to={`/tarea/${tarea.id}`}
+    className="btn btn-primary flex-grow-1"
+  >
+    Ver
+  </Link>
 
-          <button
-            onClick={() => solicitarEliminar(tarea.id)}
-            className="btn btn-outline-danger"
-            title="Eliminar tarea"
-          >
-            🗑️
-          </button>
+  <button
+    onClick={() => cambiarEstado(tarea.id)}
+    className={`btn ${
+      tarea.completa
+        ? 'btn-outline-warning'
+        : 'btn-outline-success'
+    }`}
+    title={
+      tarea.completa
+        ? 'Marcar como pendiente'
+        : 'Marcar como completa'
+    }
+  >
+    {tarea.completa ? '↩️' : '✓'}
+  </button>
 
-        </div>
+  <button
+    onClick={() => solicitarEliminar(tarea.id)}
+    className="btn btn-outline-danger"
+  >
+    🗑️
+  </button>
+
+</div>
 
       </div>
 

@@ -12,6 +12,7 @@ import Tarea from '../components/Tarea'
 function Inicio({
   tareas,
   solicitarEliminar,
+  cambiarEstado,
   descargarTareas,
   modoOscuro,
   setModoOscuro
@@ -159,6 +160,7 @@ function Inicio({
               <Tarea
                 tarea={tarea}
                 solicitarEliminar={solicitarEliminar}
+                cambiarEstado={cambiarEstado}
               />
 
             </div>

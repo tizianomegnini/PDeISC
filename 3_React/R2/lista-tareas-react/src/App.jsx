@@ -44,6 +44,15 @@ function App() {
       nuevaTarea
     ])
   }
+  const cambiarEstado = (id) => {
+  setTareas((tareasActuales) =>
+    tareasActuales.map((tarea) =>
+      tarea.id === id
+        ? { ...tarea, completa: !tarea.completa }
+        : tarea
+    )
+  )
+}
 
   // Solamente abre la ventana de confirmación
   const solicitarEliminar = (id) => {
@@ -107,6 +116,7 @@ function App() {
             <Inicio
               tareas={tareas}
               solicitarEliminar={solicitarEliminar}
+              cambiarEstado={cambiarEstado}
               descargarTareas={descargarTareas}
               modoOscuro={modoOscuro}
               setModoOscuro={setModoOscuro}
