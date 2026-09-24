@@ -1,4 +1,4 @@
-import HolaMundo from "/components/HolaMundo";
+import HolaMundo from "./components/HolaMundo";
 import TarjetaPresentacion from "./components/TarjetaPresentacion";
 import Contador from "./components/Contador";
 import ListaTareas from "./components/ListaTareas";

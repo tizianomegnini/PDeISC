@@ -89,7 +89,7 @@ button {
 }
 
 .header-contenido {
-  width: min(1100px, calc(100% - 40px));
+  width: min(1400px, calc(100% - 80px));
   min-height: 70px;
   margin: auto;
 
@@ -145,7 +145,7 @@ button {
 }
 
 .hero-contenido {
-  width: min(1100px, 100%);
+  width: min(1400px, 100%);
   margin: auto;
 }
 
@@ -228,7 +228,7 @@ button {
    ========================================================= */
 
 .contenedor {
-  width: min(900px, calc(100% - 40px));
+  width: min(1400px, calc(100% - 80px));
   margin: 0 auto;
 }
 
@@ -506,7 +506,7 @@ button {
    ========================================================= */
 
 .footer {
-  width: min(900px, calc(100% - 40px));
+  width: min(1400px, calc(100% - 80px));
   margin: 30px auto 0;
   padding: 50px 0;
 

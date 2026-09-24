@@ -8,14 +8,34 @@ function Formulario() {
   // Estado utilizado para controlar si se envió el formulario.
   const [enviado, setEnviado] = useState(false);
 
+  // Estado utilizado para mostrar errores de validación.
+  const [error, setError] = useState("");
+
   // Maneja el envío del formulario.
   const manejarEnvio = (evento) => {
     evento.preventDefault();
 
-    if (nombre.trim() === "") {
+    const nombreLimpio = nombre.trim();
+
+    // Verifica que el campo no esté vacío.
+    if (nombreLimpio === "") {
+      setError("Ingresá tu nombre.");
+      setEnviado(false);
       return;
     }
 
+    // Permite solamente letras, espacios y caracteres propios del español.
+    const nombreValido = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü]+(?:\s+[A-Za-zÁÉÍÓÚáéíóúÑñÜü]+)*$/;
+
+    if (!nombreValido.test(nombreLimpio)) {
+      setError("El nombre solo puede contener letras y espacios.");
+      setEnviado(false);
+      return;
+    }
+
+    // Si todo es correcto, elimina el error y muestra el mensaje.
+    setError("");
+    setNombre(nombreLimpio);
     setEnviado(true);
   };
 
@@ -33,6 +53,7 @@ function Formulario() {
       <form
         className="formulario"
         onSubmit={manejarEnvio}
+        noValidate
       >
         <label htmlFor="nombre">
           Nombre
@@ -40,14 +61,35 @@ function Formulario() {
 
         <input
           id="nombre"
+          name="nombre"
           type="text"
           placeholder="Ingresá tu nombre"
           value={nombre}
+          maxLength={50}
+          autoComplete="name"
           onChange={(evento) => {
-            setNombre(evento.target.value);
-            setEnviado(false);
+            const valor = evento.target.value;
+
+            // Solo permite letras y espacios mientras se escribe.
+            if (/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]*$/.test(valor)) {
+              setNombre(valor);
+              setError("");
+              setEnviado(false);
+            }
           }}
+          aria-invalid={error !== ""}
+          aria-describedby={error ? "error-nombre" : undefined}
         />
+
+        {error && (
+          <p
+            id="error-nombre"
+            className="error"
+            role="alert"
+          >
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"
