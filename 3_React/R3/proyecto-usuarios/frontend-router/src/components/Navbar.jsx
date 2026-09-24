@@ -12,7 +12,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <span className="marca">Mi App</span>
+      <span className="marca">Mi Web-Router</span>
       <div className="enlaces">
         {usuario ? (
           <>

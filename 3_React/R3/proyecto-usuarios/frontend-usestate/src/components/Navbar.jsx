@@ -12,7 +12,7 @@ export default function Navbar({ vista, irA }) {
 
   return (
     <nav className="navbar">
-      <span className="marca">Mi App</span>
+      <span className="marca">Mi Web-Usestate</span>
       <div className="enlaces">
         {usuario ? (
           <>
