@@ -10,20 +10,27 @@ export default function Navbar({ vista, irA }) {
     irA('login');
   }
 
+  // Marca el botón de la vista actual (el prop "vista" antes no se usaba)
+  const props = (nombre) => ({
+    className: vista === nombre ? 'activo' : undefined,
+    'aria-current': vista === nombre ? 'page' : undefined,
+    onClick: () => irA(nombre),
+  });
+
   return (
     <nav className="navbar">
       <span className="marca">Mi Web-Usestate</span>
       <div className="enlaces">
         {usuario ? (
           <>
-            <button onClick={() => irA('dashboard')}>Panel</button>
-            <button onClick={() => irA('perfil')}>Perfil</button>
+            <button {...props('dashboard')}>Panel</button>
+            <button {...props('perfil')}>Perfil</button>
             <button onClick={handleLogout}>Cerrar sesión</button>
           </>
         ) : (
           <>
-            <button onClick={() => irA('login')}>Entrar</button>
-            <button onClick={() => irA('register')}>Registrarse</button>
+            <button {...props('login')}>Entrar</button>
+            <button {...props('register')}>Registrarse</button>
           </>
         )}
       </div>

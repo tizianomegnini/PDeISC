@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios';
+import api, { mensajeDeError } from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { reglaEmail, reglaNombre } from '../validaciones';
 
 export default function Register() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const [errorApi, setErrorApi] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function Register() {
       login(res.data.token, res.data.usuario);
       navigate('/dashboard');
     } catch (err) {
-      setErrorApi(err.response?.data?.error || 'Error al registrarse');
+      setErrorApi(mensajeDeError(err, 'Error al registrarse'));
     }
   }
 
@@ -27,24 +28,31 @@ export default function Register() {
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <label>
           Nombre
-          <input {...register('nombre', { required: 'El nombre es obligatorio' })} />
+          <input autoComplete="name" {...register('nombre', reglaNombre)} />
           {errors.nombre && <span className="error">{errors.nombre.message}</span>}
         </label>
         <label>
           Email
-          <input type="email" {...register('email', { required: 'El email es obligatorio' })} />
+          <input type="email" autoComplete="email" {...register('email', reglaEmail)} />
           {errors.email && <span className="error">{errors.email.message}</span>}
         </label>
         <label>
           Contraseña
-          <input type="password" {...register('password', {
-            required: 'La contraseña es obligatoria',
-            minLength: { value: 6, message: 'Mínimo 6 caracteres' },
-          })} />
+          <input
+            type="password"
+            autoComplete="new-password"
+            {...register('password', {
+              required: 'La contraseña es obligatoria',
+              minLength: { value: 6, message: 'Mínimo 6 caracteres' },
+              maxLength: { value: 72, message: 'Máximo 72 caracteres' },
+            })}
+          />
           {errors.password && <span className="error">{errors.password.message}</span>}
         </label>
-        {errorApi && <p className="error">{errorApi}</p>}
-        <button type="submit">Registrarme</button>
+        {errorApi && <p className="error" role="alert">{errorApi}</p>}
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Creando cuenta…' : 'Registrarme'}
+        </button>
       </form>
       <p>¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link></p>
     </div>

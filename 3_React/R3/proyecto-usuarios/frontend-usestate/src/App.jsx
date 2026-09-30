@@ -20,7 +20,7 @@ function Contenido() {
     if (usuario && (vista === 'login' || vista === 'register')) {
       setVista('dashboard');
     }
-  }, [usuario]);
+  }, [usuario, vista]);
 
   if (cargando) return <p className="cargando">Cargando...</p>;
 

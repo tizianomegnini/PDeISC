@@ -2,6 +2,9 @@
   "name": "backend-usuarios",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "description": "API REST para el sistema de usuarios (auth + perfil) con MySQL",
   "scripts": {
     "dev": "node --watch server.js",
