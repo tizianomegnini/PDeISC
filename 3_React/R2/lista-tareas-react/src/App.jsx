@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import Inicio from './pages/Inicio'
 import DetalleTarea from './pages/DetalleTarea'
 import CrearTarea from './pages/CrearTarea'
+import EditarTarea from './pages/EditarTarea'
 
-import tareasIniciales from './data/tareas'
+import tareasIniciales from './data/Tareas'
 
 import './App.css'
 
@@ -23,7 +24,6 @@ function App() {
     return localStorage.getItem('modoOscuro') === 'true'
   })
 
-  // Tarea que se está intentando eliminar
   const [tareaAEliminar, setTareaAEliminar] = useState(null)
 
   useEffect(() => {
@@ -44,29 +44,54 @@ function App() {
       nuevaTarea
     ])
   }
-  const cambiarEstado = (id) => {
-  setTareas((tareasActuales) =>
-    tareasActuales.map((tarea) =>
-      tarea.id === id
-        ? { ...tarea, completa: !tarea.completa }
-        : tarea
-    )
-  )
-}
 
-  // Solamente abre la ventana de confirmación
+  const cambiarEstado = (id) => {
+    setTareas((tareasActuales) =>
+      tareasActuales.map((tarea) =>
+        tarea.id === id
+          ? { ...tarea, completa: !tarea.completa }
+          : tarea
+      )
+    )
+  }
+
+  const cambiarEstadoTodas = () => {
+    setTareas((tareasActuales) => {
+      const todasCompletas = tareasActuales.length > 0 &&
+        tareasActuales.every((tarea) => tarea.completa)
+
+      return tareasActuales.map((tarea) => ({
+        ...tarea,
+        completa: !todasCompletas
+      }))
+    })
+  }
+
+  const editarTarea = (tareaEditada) => {
+    setTareas((tareasActuales) =>
+      tareasActuales.map((tarea) =>
+        tarea.id === tareaEditada.id
+          ? tareaEditada
+          : tarea
+      )
+    )
+  }
+
   const solicitarEliminar = (id) => {
     const tarea = tareas.find(
       (tarea) => tarea.id === id
     )
 
+    // Una tarea pendiente no se puede eliminar.
+    if (!tarea || !tarea.completa) {
+      return
+    }
+
     setTareaAEliminar(tarea)
   }
 
-  // Elimina después de confirmar
   const confirmarEliminacion = () => {
-
-    if (!tareaAEliminar) {
+    if (!tareaAEliminar || !tareaAEliminar.completa) {
       return
     }
 
@@ -79,13 +104,11 @@ function App() {
     setTareaAEliminar(null)
   }
 
-  // Cancela la eliminación
   const cancelarEliminacion = () => {
     setTareaAEliminar(null)
   }
 
   const descargarTareas = () => {
-
     const contenido = JSON.stringify(tareas, null, 2)
 
     const archivo = new Blob(
@@ -94,12 +117,10 @@ function App() {
     )
 
     const url = URL.createObjectURL(archivo)
-
     const enlace = document.createElement('a')
 
     enlace.href = url
     enlace.download = 'tareas.txt'
-
     enlace.click()
 
     URL.revokeObjectURL(url)
@@ -117,6 +138,7 @@ function App() {
               tareas={tareas}
               solicitarEliminar={solicitarEliminar}
               cambiarEstado={cambiarEstado}
+              cambiarEstadoTodas={cambiarEstadoTodas}
               descargarTareas={descargarTareas}
               modoOscuro={modoOscuro}
               setModoOscuro={setModoOscuro}
@@ -130,6 +152,7 @@ function App() {
             <DetalleTarea
               tareas={tareas}
               solicitarEliminar={solicitarEliminar}
+              cambiarEstado={cambiarEstado}
               modoOscuro={modoOscuro}
             />
           }
@@ -145,23 +168,28 @@ function App() {
           }
         />
 
+        <Route
+          path="/editar/:id"
+          element={
+            <EditarTarea
+              tareas={tareas}
+              editarTarea={editarTarea}
+              modoOscuro={modoOscuro}
+            />
+          }
+        />
+
       </Routes>
 
-
-      {/* VENTANA DE CONFIRMACIÓN */}
-
       {tareaAEliminar && (
-
         <div
           className="modal-backdrop-custom"
           onClick={cancelarEliminacion}
         >
-
           <div
             className="delete-modal"
             onClick={(e) => e.stopPropagation()}
           >
-
             <div className="delete-modal-icon">
               🗑️
             </div>
@@ -183,7 +211,6 @@ function App() {
             </p>
 
             <div className="d-flex justify-content-end gap-2 mt-4">
-
               <button
                 className="btn btn-outline-secondary"
                 onClick={cancelarEliminacion}
@@ -197,13 +224,9 @@ function App() {
               >
                 Eliminar
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
 
     </BrowserRouter>
