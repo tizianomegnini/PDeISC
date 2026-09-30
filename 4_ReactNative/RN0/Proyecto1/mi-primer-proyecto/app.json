@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "hola-mundo",
-    "slug": "hola-mundo",
+    "name": "mi-primer-proyecto",
+    "slug": "mi-primer-proyecto",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
