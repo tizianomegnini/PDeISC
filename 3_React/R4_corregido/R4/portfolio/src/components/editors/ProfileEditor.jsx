@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiGet, apiAuthed } from "../../lib/apiClient";
 import { useEditMode } from "../../context/EditModeContext";
+import { profile as fallbackProfile } from "../../data/fallbackData";
 import "../../styles/editors.css";
 
 const EMPTY = {
@@ -36,10 +37,14 @@ export default function ProfileEditor() {
   async function load() {
     setLoading(true);
     try {
-      const data = await apiGet("/profile");
-      if (data) setForm({ ...data, bio: (data.bio ?? []).join("\n\n") });
+      if (data) {
+        setForm({ ...data, bio: (data.bio ?? []).join("\n\n") });
+      } else {
+        setForm({ ...fallbackProfile, bio: (fallbackProfile.bio ?? []).join("\n\n") });
+      }
     } catch (err) {
-      setStatus("No se pudo cargar: " + err.message);
+      setForm({ ...fallbackProfile, bio: (fallbackProfile.bio ?? []).join("\n\n") });
+      setStatus("No se pudo cargar de la base de datos (" + err.message + "). Mostrando datos locales.");
     }
     setLoading(false);
   }

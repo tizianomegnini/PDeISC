@@ -6,7 +6,10 @@
  * sitio público y el panel /admin van a leer y escribir en tu base MySQL
  * a través de ese backend (ver la carpeta /backend).
  */
-const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:4000/api" : "")
+).replace(/\/$/, "");
 
 export const isApiConfigured = Boolean(API_URL);
 
@@ -27,39 +30,60 @@ export function clearToken() {
 /** GET público, sin autenticación. Devuelve null si la petición falla. */
 export async function apiGet(path) {
   if (!API_URL) throw new Error("La API no está configurada.");
-  const res = await fetch(`${API_URL}${path}`);
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new Error(data?.error || `GET ${path} → ${res.status}`);
+  try {
+    const res = await fetch(`${API_URL}${path}`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(data?.error || `GET ${path} → ${res.status}`);
+    }
+    return data;
+  } catch (err) {
+    if (err.name === "TypeError" && (err.message.includes("fetch") || err.message.includes("NetworkError"))) {
+      throw new Error(`No se pudo conectar con el servidor backend en ${API_URL}.`);
+    }
+    throw err;
   }
-  return data;
 }
 
 /** POST / PUT / DELETE protegidos: agregan el token de admin automáticamente. */
 export async function apiAuthed(path, method, body) {
   if (!API_URL) throw new Error("La API no está configurada.");
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `${method} ${path} → ${res.status}`);
-  return data;
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `${method} ${path} → ${res.status}`);
+    return data;
+  } catch (err) {
+    if (err.name === "TypeError" && (err.message.includes("fetch") || err.message.includes("NetworkError"))) {
+      throw new Error(`No se pudo conectar con el servidor backend en ${API_URL}.`);
+    }
+    throw err;
+  }
 }
 
 /** Login de edición: solo requiere la contraseña. */
 export async function apiLogin(password) {
   if (!API_URL) throw new Error("La API no está configurada.");
-  const res = await fetch(`${API_URL}/admin/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "No se pudo desbloquear la edición.");
-  return data.token;
+  try {
+    const res = await fetch(`${API_URL}/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "No se pudo desbloquear la edición.");
+    return data.token;
+  } catch (err) {
+    if (err.name === "TypeError" && (err.message.includes("fetch") || err.message.includes("NetworkError"))) {
+      throw new Error(`No se pudo conectar con el servidor backend en ${API_URL}. Verificá que esté encendido.`);
+    }
+    throw err;
+  }
 }
