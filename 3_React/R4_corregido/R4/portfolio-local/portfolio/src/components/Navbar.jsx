@@ -33,7 +33,7 @@ export default function Navbar() {
     <header className={`navbar ${scrolled ? "navbar--scrolled" : ""}`}>
       <nav className="container navbar__inner" aria-label="Navegación principal">
         <a href="#inicio" className="navbar__brand">
-          Ada Fernández
+          Tiziano Riquelme Portfolio
         </a>
 
         <ul className={`navbar__links ${menuOpen ? "navbar__links--open" : ""}`}>

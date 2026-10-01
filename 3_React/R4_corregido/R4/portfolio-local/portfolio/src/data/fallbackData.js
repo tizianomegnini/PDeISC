@@ -8,7 +8,7 @@
  */
 
 export const profile = {
-  name: "Ada Fernández",
+  name: "Tiziano Riquelme",
   role: "Desarrolladora Frontend",
   location: "Mar del Plata, Argentina",
   summary:
