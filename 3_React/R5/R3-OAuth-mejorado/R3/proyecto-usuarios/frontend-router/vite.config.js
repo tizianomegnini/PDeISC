@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 // strictPort hace que falle con un mensaje claro si está ocupado, en vez de
 // saltar en silencio a otro puerto que el backend rechazaría.
 export default defineConfig({
-  plugins: [react()],
-  server: { port: 5173, strictPort: true },
-});
+  server: {
+    proxy: {
+      '/api': 'http://localhost:5000', // El puerto de tu backend
+    },
+  },
+})

@@ -3,7 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "description": "Sistema de usuarios: backend (Express + MySQL) y dos frontends (React Router y useState)",
-  "engines": { "node": ">=18.18.0" },
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "install:all": "npm install && npm --prefix backend install && npm --prefix frontend-router install && npm --prefix frontend-usestate install",
     "dev": "concurrently -n api,router,usestate -c blue,green,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend-router run dev\" \"npm --prefix frontend-usestate run dev\"",
@@ -12,6 +14,9 @@
     "dev:usestate": "npm --prefix frontend-usestate run dev"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
-  }
+    "concurrently": "^9.2.4"
+  },
+  
+  "proxy": "http://localhost:5000"
+
 }
