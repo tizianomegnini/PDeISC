@@ -46,7 +46,13 @@ const proveedores = {
     extra: async (accessToken, user) => {
       if (user.email) return user;
       const r = await fetch('https://api.github.com/user/emails', { headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10' } });
-      if (!r.ok) throw new Error('GitHub no pudo devolver tus emails.');
+      // GitHub puede no devolver emails (por ejemplo, si no hay una dirección
+      // pública/verificada o el permiso user:email no fue concedido). El email
+      // es opcional para OAuth en este proyecto, así que no bloqueamos el login.
+      if (!r.ok) {
+        console.warn(`[OAuth:github] No se pudo consultar /user/emails (${r.status}); se continuará sin email.`);
+        return user;
+      }
       const emails = await r.json();
       const principal = emails.find((e) => e.primary && e.verified) || emails.find((e) => e.verified);
       return { ...user, email: principal?.email || user.email, email_verified: Boolean(principal?.verified) };
