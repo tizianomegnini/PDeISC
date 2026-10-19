@@ -65,10 +65,27 @@ export async function inicializarBD() {
   `);
 
   // Identidades externas: un mismo usuario puede vincular Google, GitHub,
-  // Discord, Twitch, X, Facebook/Meta y otros proveedores.
+  // Discord, Facebook/Meta y otros proveedores.
   // Compatibilidad con instalaciones anteriores del proyecto: OAuth puede
-  // crear usuarios sin contraseña o sin email (por ejemplo X).
-  await pool.query('ALTER TABLE usuarios MODIFY email VARCHAR(150) NULL UNIQUE, MODIFY password_hash VARCHAR(255) NULL');
+  // crear usuarios sin contraseña o sin email.
+  const [columnasUsuario] = await pool.query('SHOW COLUMNS FROM usuarios');
+  const columnaEmail = columnasUsuario.find((columna) => columna.Field === 'email');
+  const columnaPassword = columnasUsuario.find((columna) => columna.Field === 'password_hash');
+  const [indicesUsuario] = await pool.query('SHOW INDEX FROM usuarios');
+  const emailUnico = indicesUsuario.some((indice) => indice.Column_name === 'email' && indice.Non_unique === 0);
+  const necesitaActualizarEsquema =
+    !columnaEmail ||
+    columnaEmail.Type.toLowerCase() !== 'varchar(150)' ||
+    columnaEmail.Null !== 'YES' ||
+    !emailUnico ||
+    !columnaPassword ||
+    columnaPassword.Type.toLowerCase() !== 'varchar(255)' ||
+    columnaPassword.Null !== 'YES';
+
+  // Evita reconstruir y bloquear la tabla en cada arranque si ya está al día.
+  if (necesitaActualizarEsquema) {
+    await pool.query('ALTER TABLE usuarios MODIFY email VARCHAR(150) NULL UNIQUE, MODIFY password_hash VARCHAR(255) NULL');
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS identidades_oauth (

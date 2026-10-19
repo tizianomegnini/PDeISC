@@ -5,7 +5,7 @@
 - Se mantuvo el registro y login por email + contraseña.
 - Se agregó una capa de identidades OAuth vinculada al usuario.
 - Se agregó Google como proveedor obligatorio del diseño.
-- Se agregaron GitHub, Facebook/Meta, Discord, Twitch, X, Microsoft, LinkedIn, Spotify y GitLab.
+- Se agregaron GitHub, Facebook/Meta, Discord y Spotify.
 - El frontend consulta qué proveedores están configurados y deshabilita los que todavía no tienen credenciales.
 
 ## Backend

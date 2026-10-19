@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Sensor Lab",
+    "slug": "sensor-lab",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.tunombre.sensorlab",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Sensor Lab usa la cámara para tomar fotos y leer códigos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Sensor Lab usa tu ubicación para mostrar coordenadas."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Sensor Lab usa biometría para confirmar tu identidad."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "eedfe123-a507-4d2e-80e4-fa855b87fc40"
+      }
+    }
+  }
+}

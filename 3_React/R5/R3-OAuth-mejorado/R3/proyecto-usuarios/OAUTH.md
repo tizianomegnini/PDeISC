@@ -8,12 +8,7 @@ El proyecto mantiene el login normal con email/contraseña y agrega OAuth sin re
 - GitHub
 - Facebook / Meta
 - Discord
-- Twitch
-- X
-- Microsoft
-- LinkedIn
 - Spotify
-- GitLab
 
 Los botones aparecen automáticamente. Un proveedor queda habilitado cuando sus dos variables (`CLIENT_ID` y `CLIENT_SECRET`) están configuradas.
 
@@ -39,15 +34,23 @@ Ejemplos:
 - Google: `/google/callback`
 - GitHub: `/github/callback`
 - Discord: `/discord/callback`
-- Twitch: `/twitch/callback`
-- X: `/x/callback`
 - Facebook: `/facebook/callback`
+
+Spotify requiere una URI de loopback con IP explícita. En el panel de Spotify registrá:
+
+`http://127.0.0.1:4000/api/auth/oauth/spotify/callback`
+
+Y en `backend/.env` configurá la misma URL como `SPOTIFY_CALLBACK_URL`. Para Spotify no uses `localhost`; la URI registrada, la de autorización y la del intercambio de código tienen que ser idénticas.
 
 Para una instalación publicada, reemplazá `localhost` por tu dominio HTTPS y cambiá `OAUTH_CALLBACK_BASE`.
 
 ## 3. Google
 
 Google usa OAuth 2.0/OpenID Connect. En la consola de Google tenés que crear un cliente de tipo aplicación web y agregar exactamente la URI de redirección configurada en el backend.
+
+## 3.1 Spotify
+
+En el [Spotify Developer Dashboard](https://developer.spotify.com/dashboard), creá una app y copiá su Client ID y Client Secret en `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET` dentro de `backend/.env`. Agregá allí la Redirect URI indicada arriba. El backend solicita `user-read-email` y `user-read-private` para obtener la identidad y el email disponibles del perfil.
 
 ## 4. Base de datos
 

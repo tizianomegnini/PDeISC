@@ -65,7 +65,10 @@ const proveedores = {
     authorize: 'https://www.facebook.com/v24.0/dialog/oauth',
     token: 'https://graph.facebook.com/v24.0/oauth/access_token',
     userinfo: 'https://graph.facebook.com/me?fields=id,name,email',
-    scope: 'email,public_profile',
+    // En algunas apps creadas con el flujo nuevo de casos de uso de Meta,
+    // `email` no queda habilitado automáticamente y Meta rechaza el login con
+    // "Invalid Scopes". El perfil público basta para autenticar; email es opcional.
+    scope: 'public_profile',
     map: (u) => ({ id: String(u.id), nombre: u.name, email: u.email, emailVerificado: Boolean(u.email) }),
   },
   discord: {
@@ -78,76 +81,26 @@ const proveedores = {
     scope: 'identify email',
     map: (u) => ({ id: String(u.id), nombre: u.global_name || u.username, email: u.email, emailVerificado: u.verified === true }),
   },
-  twitch: {
-    label: 'Twitch',
-    clientId: process.env.TWITCH_CLIENT_ID,
-    clientSecret: process.env.TWITCH_CLIENT_SECRET,
-    authorize: 'https://id.twitch.tv/oauth2/authorize',
-    token: 'https://id.twitch.tv/oauth2/token',
-    userinfo: 'https://api.twitch.tv/helix/users',
-    scope: 'user:read:email',
-    map: (u) => ({ id: String(u.id), nombre: u.display_name || u.login, email: u.email, emailVerificado: Boolean(u.email) }),
-    headers: (token) => ({ Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID }),
-    extract: (body) => body.data?.[0] || {},
-  },
-  x: {
-    label: 'X',
-    clientId: process.env.X_CLIENT_ID,
-    clientSecret: process.env.X_CLIENT_SECRET,
-    authorize: 'https://twitter.com/i/oauth2/authorize',
-    token: 'https://api.twitter.com/2/oauth2/token',
-    userinfo: 'https://api.twitter.com/2/users/me?user.fields=id,name,username',
-    scope: 'users.read tweet.read offline.access',
-    pkce: true,
-    basicTokenAuth: true,
-    map: (u) => ({ id: String(u.id), nombre: u.name || u.username, email: null, emailVerificado: false }),
-  },
-  microsoft: {
-    label: 'Microsoft',
-    clientId: process.env.MICROSOFT_CLIENT_ID,
-    clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-    authorize: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID || 'common'}/oauth2/v2.0/authorize`,
-    token: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID || 'common'}/oauth2/v2.0/token`,
-    userinfo: 'https://graph.microsoft.com/oidc/userinfo',
-    scope: 'openid profile email User.Read',
-    pkce: true,
-    map: (u) => ({ id: u.sub, nombre: u.name || u.email?.split('@')[0], email: u.email, emailVerificado: Boolean(u.email) }),
-  },
-  linkedin: {
-    label: 'LinkedIn',
-    clientId: process.env.LINKEDIN_CLIENT_ID,
-    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    authorize: 'https://www.linkedin.com/oauth/v2/authorization',
-    token: 'https://www.linkedin.com/oauth/v2/accessToken',
-    userinfo: 'https://api.linkedin.com/v2/userinfo',
-    scope: 'openid profile email',
-    pkce: true,
-    map: (u) => ({ id: u.sub, nombre: u.name || u.email?.split('@')[0], email: u.email, emailVerificado: u.email_verified === true }),
-  },
   spotify: {
     label: 'Spotify',
     clientId: process.env.SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+    callbackUrl: process.env.SPOTIFY_CALLBACK_URL,
     authorize: 'https://accounts.spotify.com/authorize',
     token: 'https://accounts.spotify.com/api/token',
     userinfo: 'https://api.spotify.com/v1/me',
     scope: 'user-read-email user-read-private',
+    basicTokenAuth: true,
     map: (u) => ({ id: String(u.id), nombre: u.display_name || u.id, email: u.email, emailVerificado: Boolean(u.email) }),
-  },
-  gitlab: {
-    label: 'GitLab',
-    clientId: process.env.GITLAB_CLIENT_ID,
-    clientSecret: process.env.GITLAB_CLIENT_SECRET,
-    authorize: 'https://gitlab.com/oauth/authorize',
-    token: 'https://gitlab.com/oauth/token',
-    userinfo: 'https://gitlab.com/api/v4/user',
-    scope: 'read_user',
-    map: (u) => ({ id: String(u.id), nombre: u.name || u.username, email: u.email, emailVerificado: Boolean(u.confirmed_at || u.email) }),
   },
 };
 
 function disponible(provider) {
   return Boolean(provider.clientId && provider.clientSecret);
+}
+
+function callbackUri(providerId, provider) {
+  return provider.callbackUrl || `${CALLBACK_BASE}/${providerId}/callback`;
 }
 
 export function listaProveedores() {
@@ -170,7 +123,7 @@ export function iniciarOAuth(providerId, req, res) {
   const verifier = p.pkce ? aleatorio(48) : null;
   estados.set(state, { providerId, verifier, expira: Date.now() + 10 * 60 * 1000 });
 
-  const params = new URLSearchParams({ client_id: p.clientId, redirect_uri: `${CALLBACK_BASE}/${providerId}/callback`, response_type: 'code', scope: p.scope, state });
+  const params = new URLSearchParams({ client_id: p.clientId, redirect_uri: callbackUri(providerId, p), response_type: 'code', scope: p.scope, state });
   if (verifier) params.set('code_challenge', pkceChallenge(verifier)), params.set('code_challenge_method', 'S256');
   res.redirect(`${p.authorize}?${params}`);
 }
@@ -241,7 +194,7 @@ export async function callbackOAuth(providerId, req, res) {
   if (req.query.error) return res.redirect(`${FRONTEND_URL}/login?oauth_error=${encodeURIComponent(req.query.error_description || req.query.error)}`);
 
   try {
-    const redirectUri = `${CALLBACK_BASE}/${providerId}/callback`;
+    const redirectUri = callbackUri(providerId, p);
     const tokens = await intercambiarCodigo(p, req.query.code, redirectUri, registro.verifier);
     let externo = await obtenerUsuario(p, tokens.access_token);
     if (p.extra) externo = await p.extra(tokens.access_token, externo);

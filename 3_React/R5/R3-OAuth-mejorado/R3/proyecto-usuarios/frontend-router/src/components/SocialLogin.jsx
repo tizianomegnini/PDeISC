@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 
 const iconos = {
-  google: 'G', github: 'GH', facebook: 'f', discord: 'DC', twitch: 'TW', x: '𝕏', microsoft: 'MS', linkedin: 'in', spotify: 'S', gitlab: 'GL',
+  google: 'G', github: 'GH', facebook: 'f', discord: 'DC', spotify: 'S',
 };
 
 export default function SocialLogin() {
