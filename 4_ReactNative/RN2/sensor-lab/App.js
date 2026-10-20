@@ -1,34 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image, ScrollView,
-  SafeAreaView, StatusBar, Platform, Alert, Linking,
+  SafeAreaView, StatusBar, Platform, Alert, Linking, ActivityIndicator,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import jsQR from 'jsqr';
+import jpeg from 'jpeg-js';
+import { toByteArray } from 'base64-js';
 import * as Location from 'expo-location';
 import { Accelerometer, Gyroscope } from 'expo-sensors';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 const C = {
-  bg: '#EEF1F6', ink: '#14213D', mute: '#5B6B88', card: '#FFFFFF',
-  accent: '#2F6FED', ok: '#1E9E6A', bad: '#D64545', line: '#D5DBE7',
+  bg: '#F3F5FB', ink: '#151B36', mute: '#737B96', card: '#FFFFFF',
+  accent: '#5865E8', accentDark: '#434FCB', cyan: '#2CC9D2',
+  ok: '#178A68', bad: '#D34C62', line: '#E5E8F2', navy: '#171D3B',
 };
 
 const TABS = [
-  { id: 'camera', label: 'Cámara' },
-  { id: 'scan', label: 'Escáner' },
-  { id: 'gps', label: 'GPS' },
-  { id: 'motion', label: 'Movimiento' },
-  { id: 'bio', label: 'Biometría' },
+  { id: 'camera', label: 'Cámara', icon: '◉' },
+  { id: 'scan', label: 'Escáner', icon: '⌗' },
+  { id: 'gps', label: 'Ubicación', icon: '◎' },
+  { id: 'motion', label: 'Movimiento', icon: '⌁' },
+  { id: 'bio', label: 'Biometría', icon: '◈' },
 ];
 
 /* ---------- Componentes base ---------- */
-const Btn = ({ title, onPress, kind = 'primary', style }) => (
+const Btn = ({ title, onPress, kind = 'primary', style, disabled = false }) => (
   <TouchableOpacity
     onPress={onPress}
-    activeOpacity={0.8}
-    style={[s.btn, kind === 'ghost' && s.btnGhost, style]}
+    activeOpacity={0.82}
+    disabled={disabled}
+    accessibilityRole="button"
+    style={[s.btn, kind === 'ghost' && s.btnGhost, kind === 'dark' && s.btnDark, disabled && s.btnDisabled, style]}
   >
-    <Text style={[s.btnText, kind === 'ghost' && { color: C.accent }]}>{title}</Text>
+    <Text style={[s.btnText, kind === 'ghost' && { color: C.accent }, kind === 'dark' && { color: '#fff' }]}>{title}</Text>
   </TouchableOpacity>
 );
 
@@ -38,7 +46,7 @@ const PermissionGate = ({ permission, request, children, what }) => {
     return (
       <View style={s.card}>
         <Text style={s.h2}>Necesitamos acceso a {what}</Text>
-        <Text style={s.mute}>Sin este permiso no podemos mostrar esta función.</Text>
+        <Text style={s.mute}>Con este permiso vas a poder usar la función desde la app.</Text>
         <Btn title="Dar permiso" onPress={request} style={{ marginTop: 12 }} />
         {!permission.canAskAgain && (
           <Btn title="Abrir ajustes" kind="ghost" onPress={() => Linking.openSettings()} style={{ marginTop: 8 }} />
@@ -72,7 +80,7 @@ function CameraScreen() {
       </View>
       <View style={s.row}>
         <Btn title="Tomar foto" onPress={take} style={{ flex: 1 }} />
-        <Btn title="Girar" kind="ghost" onPress={() => setFacing(f => (f === 'back' ? 'front' : 'back'))} style={{ flex: 1 }} />
+        <Btn title="Girar cámara" kind="ghost" onPress={() => setFacing(f => (f === 'back' ? 'front' : 'back'))} style={{ flex: 1 }} />
       </View>
       {photo && (
         <View style={s.card}>
@@ -84,53 +92,107 @@ function CameraScreen() {
   );
 }
 
-/* ---------- Lector de códigos ---------- */
+async function readQrFromImage(uri) {
+  const image = await ImageManipulator.ImageManipulator.manipulate(uri, { maxWidth: 1800, maxHeight: 1800 }).renderAsync();
+  const jpegImage = await image.saveAsync({ format: ImageManipulator.SaveFormat.JPEG, base64: true });
+  if (!jpegImage.base64) throw new Error('No se pudo preparar la imagen para leer el QR.');
+  const decoded = jpeg.decode(toByteArray(jpegImage.base64), { useTArray: true, maxMemoryUsageInMB: 128, maxResolutionInMP: 8 });
+  const pixels = new Uint8ClampedArray(decoded.data.buffer, decoded.data.byteOffset, decoded.data.byteLength);
+  return jsQR(pixels, decoded.width, decoded.height, { inversionAttempts: 'attemptBoth' });
+}
+
 function ScanScreen() {
   const [perm, request] = useCameraPermissions();
   const [result, setResult] = useState(null);
+  const [imageUri, setImageUri] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const cameraRef = useRef(null);
   const locked = useRef(false);
 
-  const onScan = ({ type, data }) => {
-    if (locked.current) return;
-    locked.current = true;
-    setResult({ type, data });
+  const scanImage = async (uri, source) => {
+    locked.current = false;
+    setResult(null);
+    setBusy(true);
+    try {
+      const code = await readQrFromImage(uri);
+      if (code?.data) {
+        locked.current = true;
+        setResult({ type: 'qr', data: code.data, source });
+      } else {
+        Alert.alert('No encontramos un QR', 'Probá con una imagen más nítida, mejor iluminada y con el código ocupando buena parte de la imagen.');
+      }
+    } catch (e) {
+      Alert.alert('No se pudo analizar la imagen', String(e.message || e));
+    } finally {
+      setBusy(false);
+    }
   };
-  const reset = () => { locked.current = false; setResult(null); };
+
+  const scanCamera = async () => {
+    try {
+      const photo = await cameraRef.current?.takePictureAsync({ quality: 1, skipProcessing: false });
+      if (!photo?.uri) throw new Error('No se pudo capturar la imagen de la cámara.');
+      await scanImage(photo.uri, 'Cámara');
+    } catch (e) {
+      Alert.alert('No se pudo analizar la imagen', String(e.message || e));
+      setBusy(false);
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+      if (picked.canceled || !picked.assets?.[0]?.uri) return;
+      setImageUri(picked.assets[0].uri);
+      await scanImage(picked.assets[0].uri, 'Imagen de la galería');
+    } catch (e) {
+      Alert.alert('No se pudo analizar la imagen', String(e.message || e));
+    }
+  };
+  const reset = () => { locked.current = false; setResult(null); setImageUri(null); };
 
   return (
-    <PermissionGate permission={perm} request={request} what="la cámara">
-      <View style={s.cameraBox}>
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          facing="back"
-          onBarcodeScanned={onScan}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'pdf417'],
-          }}
-        />
-        <View style={s.frame} pointerEvents="none" />
+    <View>
+      <View style={s.scanActions}>
+        <Btn title="Elegir imagen" onPress={pickImage} disabled={busy} style={s.scanAction} />
+        {(result || imageUri) && <Btn title="Limpiar" kind="ghost" onPress={reset} style={s.scanAction} />}
       </View>
+      {imageUri ? (
+        <View style={s.imageScanBox}>
+          <Image source={{ uri: imageUri }} style={s.imageScanPreview} resizeMode="contain" />
+          {busy && <View style={s.imageScanBusy}><ActivityIndicator color="#fff" /><Text style={s.imageScanBusyText}>Buscando QR…</Text></View>}
+        </View>
+      ) : (
+        <PermissionGate permission={perm} request={request} what="la cámara">
+          <View style={s.cameraBox}>
+            <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" mute={true} />
+            <View style={s.frame} pointerEvents="none" />
+            <View style={s.cameraHint}><Text style={s.cameraHintText}>Enfocá el QR y tocá «Leer QR»</Text></View>
+          </View>
+          <Btn title={busy ? 'Analizando…' : 'Leer QR'} onPress={scanCamera} disabled={busy} style={{ marginTop: 12 }} />
+        </PermissionGate>
+      )}
       <View style={s.card}>
         {result ? (
           <>
-            <Text style={s.h2}>Código leído</Text>
-            <Text style={s.mute}>Tipo: {String(result.type)}</Text>
+            <Text style={s.eyebrow}>LECTURA COMPLETADA · {result.source}</Text>
+            <Text style={s.h2}>Código QR leído</Text>
             <Text selectable style={s.value}>{result.data}</Text>
             <View style={s.row}>
-              {/^https?:\/\//i.test(result.data) && (
-                <Btn title="Abrir enlace" onPress={() => Linking.openURL(result.data)} style={{ flex: 1 }} />
-              )}
+              {/^https?:\/\//i.test(result.data) && <Btn title="Abrir enlace" onPress={() => Linking.openURL(result.data)} style={{ flex: 1 }} />}
               <Btn title="Escanear otro" kind="ghost" onPress={reset} style={{ flex: 1 }} />
             </View>
           </>
         ) : (
-          <Text style={s.mute}>Apuntá la cámara a un QR o código de barras.</Text>
+          <>
+            <Text style={s.h2}>Escaneá un código</Text>
+            <Text style={s.mute}>Enfocá el QR y tocá «Leer QR», o elegí una foto de la galería.</Text>
+          </>
         )}
       </View>
-    </PermissionGate>
+    </View>
   );
 }
-
 /* ---------- Ubicación ---------- */
 function GpsScreen() {
   const [pos, setPos] = useState(null);
@@ -149,7 +211,7 @@ function GpsScreen() {
     try {
       const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setPos(p);
-    } catch (e) { setErr('No se pudo obtener la ubicación. ¿Está el GPS activado?'); }
+    } catch { setErr('No se pudo obtener la ubicación. ¿Está el GPS activado?'); }
   };
 
   const toggle = async () => {
@@ -302,22 +364,40 @@ const Row = ({ k, v }) => (
 export default function App() {
   const [tab, setTab] = useState('camera');
   const Screen = { camera: CameraScreen, scan: ScanScreen, gps: GpsScreen, motion: MotionScreen, bio: BioScreen }[tab];
+  const activeTab = TABS.find(t => t.id === tab);
+  const intro = {
+    camera: ['Capturá el momento', 'Probá la cámara y guardá una foto al instante.'],
+    scan: ['Leé códigos QR', 'Escaneá con la cámara o analizá una imagen guardada.'],
+    gps: ['Tu ubicación', 'Consultá coordenadas y precisión en tiempo real.'],
+    motion: ['Sentí el movimiento', 'Explorá los datos del acelerómetro y el giroscopio.'],
+    bio: ['Acceso biométrico', 'Comprobá las opciones de seguridad de tu dispositivo.'],
+  }[tab];
 
   return (
     <SafeAreaView style={s.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
       <View style={s.header}>
-        <Text style={s.title}>Sensor Lab</Text>
-        <Text style={s.mute}>Las herramientas del teléfono, una por una</Text>
+        <Image source={require('./assets/icon.png')} style={s.brandLogo} />
+        <View style={s.brandText}>
+          <Text style={s.title}>RN2</Text>
+          <Text style={s.brandSubtitle}>LABORATORIO DE SENSORES</Text>
+        </View>
+        <View style={s.livePill}><View style={s.liveDot} /><Text style={s.liveText}>EN VIVO</Text></View>
       </View>
-      <View style={s.tabs}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>
         {TABS.map(t => (
-          <TouchableOpacity key={t.id} onPress={() => setTab(t.id)} style={[s.tab, tab === t.id && s.tabOn]}>
+          <TouchableOpacity key={t.id} onPress={() => setTab(t.id)} style={[s.tab, tab === t.id && s.tabOn]} accessibilityRole="button" accessibilityState={{ selected: tab === t.id }}>
+            <Text style={[s.tabIcon, tab === t.id && { color: C.cyan }]}>{t.icon}</Text>
             <Text style={[s.tabText, tab === t.id && { color: '#fff' }]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
       <ScrollView contentContainerStyle={s.body}>
+        <View style={s.intro}>
+          <Text style={s.eyebrow}>EXPLORAR · {activeTab?.label.toUpperCase()}</Text>
+          <Text style={s.introTitle}>{intro[0]}</Text>
+          <Text style={s.introText}>{intro[1]}</Text>
+        </View>
         <Screen key={tab} />
       </ScrollView>
     </SafeAreaView>
@@ -326,28 +406,49 @@ export default function App() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  title: { fontSize: 28, fontWeight: '800', color: C.ink },
-  tabs: { flexDirection: 'row', paddingHorizontal: 12, gap: 6, paddingBottom: 8 },
-  tab: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
-  tabOn: { backgroundColor: C.ink, borderColor: C.ink },
-  tabText: { fontSize: 12, fontWeight: '600', color: C.ink },
-  body: { padding: 16, paddingBottom: 40, gap: 12 },
-  card: { backgroundColor: C.card, borderRadius: 14, padding: 16, marginTop: 12, borderWidth: 1, borderColor: C.line },
-  h2: { fontSize: 16, fontWeight: '700', color: C.ink, marginBottom: 6 },
-  mute: { color: C.mute, fontSize: 14 },
-  value: { color: C.ink, fontSize: 15, fontWeight: '600', marginTop: 4 },
-  kv: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
-  row: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  btn: { backgroundColor: C.accent, paddingVertical: 13, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: C.accent },
-  btnGhost: { backgroundColor: 'transparent' },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  cameraBox: { height: 340, borderRadius: 14, overflow: 'hidden', backgroundColor: '#000' },
-  frame: { position: 'absolute', top: '25%', left: '15%', right: '15%', bottom: '25%', borderWidth: 3, borderColor: '#fff', borderRadius: 12 },
-  preview: { width: '100%', height: 220, borderRadius: 10, marginTop: 6 },
-  axis: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
-  axisLabel: { width: 18, color: C.mute, fontWeight: '700' },
-  axisVal: { width: 56, textAlign: 'right', color: C.ink, fontVariant: ['tabular-nums'] },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
+  brandLogo: { width: 48, height: 48, borderRadius: 15, backgroundColor: C.navy },
+  brandText: { flex: 1, marginLeft: 12 },
+  title: { fontSize: 24, lineHeight: 27, fontWeight: '900', color: C.ink, letterSpacing: 0.6 },
+  brandSubtitle: { marginTop: 3, fontSize: 9, fontWeight: '800', letterSpacing: 1.35, color: C.mute },
+  livePill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: '#E6F7F4' },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.ok },
+  liveText: { color: C.ok, fontWeight: '800', fontSize: 9, letterSpacing: 0.6 },
+  tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, paddingBottom: 12 },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 10, paddingHorizontal: 13, borderRadius: 15, backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
+  tabOn: { backgroundColor: C.navy, borderColor: C.navy },
+  tabIcon: { color: C.accent, fontSize: 16, fontWeight: '800' },
+  tabText: { fontSize: 12, fontWeight: '700', color: C.ink },
+  body: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 42, gap: 14 },
+  intro: { paddingVertical: 4, paddingHorizontal: 2, marginBottom: 2 },
+  eyebrow: { color: C.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.25, marginBottom: 7 },
+  introTitle: { fontSize: 25, lineHeight: 30, fontWeight: '900', color: C.ink, letterSpacing: -0.5 },
+  introText: { marginTop: 5, fontSize: 13, lineHeight: 19, color: C.mute },
+  card: { backgroundColor: C.card, borderRadius: 20, padding: 17, marginTop: 12, borderWidth: 1, borderColor: C.line, shadowColor: '#26345C', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 2 },
+  h2: { fontSize: 16, fontWeight: '800', color: C.ink, marginBottom: 6 },
+  mute: { color: C.mute, fontSize: 13, lineHeight: 19 },
+  value: { color: C.ink, fontSize: 15, lineHeight: 22, fontWeight: '700', marginTop: 6 },
+  kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: C.line },
+  row: { flexDirection: 'row', gap: 10, marginTop: 13 },
+  btn: { backgroundColor: C.accent, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.accent, shadowColor: C.accent, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.18, shadowRadius: 9, elevation: 2 },
+  btnGhost: { backgroundColor: '#F5F6FC', borderColor: C.line, shadowOpacity: 0, elevation: 0 },
+  btnDark: { backgroundColor: C.navy, borderColor: C.navy },
+  btnDisabled: { opacity: 0.65 },
+  btnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  scanActions: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  scanAction: { flex: 1 },
+  cameraBox: { height: 340, borderRadius: 22, overflow: 'hidden', backgroundColor: '#090D1B' },
+  frame: { position: 'absolute', top: '23%', left: '15%', right: '15%', bottom: '23%', borderWidth: 2, borderColor: '#fff', borderRadius: 20, backgroundColor: 'transparent' },
+  cameraHint: { position: 'absolute', bottom: 15, alignSelf: 'center', borderRadius: 20, backgroundColor: 'rgba(12,16,34,0.72)', paddingHorizontal: 14, paddingVertical: 8 },
+  cameraHintText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  imageScanBox: { height: 300, borderRadius: 22, overflow: 'hidden', backgroundColor: C.navy, alignItems: 'center', justifyContent: 'center' },
+  imageScanPreview: { width: '100%', height: '100%' },
+  imageScanBusy: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,19,42,0.68)', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  imageScanBusyText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  preview: { width: '100%', height: 220, borderRadius: 14, marginTop: 8, backgroundColor: C.bg },
+  axis: { flexDirection: 'row', alignItems: 'center', marginVertical: 7 },
+  axisLabel: { width: 18, color: C.mute, fontWeight: '800' },
+  axisVal: { width: 56, textAlign: 'right', color: C.ink, fontVariant: ['tabular-nums'], fontWeight: '700' },
   track: { flex: 1, height: 10, backgroundColor: C.bg, borderRadius: 5, overflow: 'hidden', marginHorizontal: 8 },
   fill: { position: 'absolute', top: 0, bottom: 0, backgroundColor: C.accent },
   zero: { position: 'absolute', left: '50%', width: 1, top: 0, bottom: 0, backgroundColor: C.mute },
