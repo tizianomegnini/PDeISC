@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import api from '../api/axios';
 
 const iconos = {
-  google: 'G', github: 'GH', facebook: 'f', discord: 'DC', spotify: 'S',
+  google: 'G', github: 'GH', discord: 'DC',
 };
+
+const proveedoresOcultos = new Set(['facebook', 'spotify']);
 
 export default function SocialLogin() {
   const [proveedores, setProveedores] = useState([]);
@@ -11,7 +13,7 @@ export default function SocialLogin() {
 
   useEffect(() => {
     api.get('/auth/oauth/providers')
-      .then((res) => setProveedores(res.data.proveedores || []))
+      .then((res) => setProveedores((res.data.proveedores || []).filter((p) => !proveedoresOcultos.has(p.id))))
       .catch(() => setError('No se pudo cargar la lista de proveedores.'));
   }, []);
 

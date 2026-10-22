@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
 
-const iconos = { google:'G', github:'GH', facebook:'f', discord:'DC', spotify:'S' };
+const iconos = { google:'G', github:'GH', discord:'DC' };
+const proveedoresOcultos = new Set(['facebook', 'spotify']);
 
 export default function SocialLogin() {
   const [proveedores, setProveedores] = useState([]);
   const [error, setError] = useState('');
   useEffect(() => {
-    api.get('/auth/oauth/providers').then((r) => setProveedores(r.data.proveedores || [])).catch(() => setError('No se pudo cargar la lista de proveedores.'));
+    api.get('/auth/oauth/providers').then((r) => setProveedores((r.data.proveedores || []).filter((p) => !proveedoresOcultos.has(p.id)))).catch(() => setError('No se pudo cargar la lista de proveedores.'));
   }, []);
   function entrar(id, configurado) {
     if (!configurado) return setError('Este proveedor todavía no está configurado en backend/.env.');
