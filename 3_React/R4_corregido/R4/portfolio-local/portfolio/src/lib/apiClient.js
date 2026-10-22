@@ -1,80 +1,123 @@
-/**
- * Base de datos local del portfolio (sin backend, sin MySQL, sin puertos).
- *
- * Todo el contenido vive en el navegador (localStorage) y arranca desde
- * src/data/seed.json. Mantiene la misma interfaz que tenía el cliente HTTP
- * (apiGet / apiAuthed / apiLogin) para que los editores y el hook
- * usePortfolioData sigan funcionando igual.
- *
- * Cómo se publican los cambios:
- *  1. Editás el contenido desde el sitio (botones "✎ Editar").
- *  2. Abrís el panel "Datos" (botón flotante) y hacés "Exportar".
- *  3. Reemplazás src/data/seed.json con el archivo exportado y hacés push:
- *     Vercel vuelve a desplegar y todos los visitantes ven lo nuevo.
- *
- * IMPORTANTE: la contraseña se verifica en el navegador, así que es solo un
- * candado "suave". Los cambios hechos desde el sitio solo se guardan en el
- * navegador de quien edita; no afectan a los demás visitantes.
- */
 import seed from "../data/seed.json";
 
-export const isApiConfigured = true;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const ADMIN_EMAIL = import.meta.env.VITE_SUPABASE_ADMIN_EMAIL?.trim().toLowerCase();
+const SESSION_KEY = "portfolio-supabase-session";
+const DOCUMENT_ID = "main";
 
-const DATA_KEY = "portfolio-data-v1";
-const TOKEN_KEY = "portfolio-admin-token";
-const SESSION_VALUE = "local-session";
+export const isApiConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
-// SHA-256 de la contraseña de edición. Por defecto corresponde a "Admin123!".
-// Para cambiarla: `npm run hash-password` y poné el resultado en
-// VITE_ADMIN_PASSWORD_HASH (archivo .env y variables de entorno de Vercel).
-const DEFAULT_PASSWORD_HASH = "3eb3fe66b31e3b4d10fa70b5cad49c7112294af6ae4e476a1c405155d45aa121";
-const PASSWORD_HASH = (import.meta.env.VITE_ADMIN_PASSWORD_HASH || DEFAULT_PASSWORD_HASH).toLowerCase();
+const clone = (value) => JSON.parse(JSON.stringify(value));
 
-// Recursos con CRUD estándar: columnas editables, columnas de tipo lista y orden al listar.
+function requireConfiguration() {
+  if (!isApiConfigured) {
+    throw new Error("Falta configurar Supabase. Revisá las variables de entorno del proyecto.");
+  }
+}
+
+function readStoredSession() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch {
+    throw new Error("No se pudo guardar la sesión en este navegador.");
+  }
+}
+
+function clearStoredSession() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // La sesión del servidor sigue siendo la autoridad.
+  }
+}
+
+async function request(path, { method = "GET", body, accessToken, prefer } = {}) {
+  requireConfiguration();
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_KEY,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...(prefer ? { Prefer: prefer } : {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+
+  const text = await response.text();
+  let result = null;
+  try {
+    result = text ? JSON.parse(text) : null;
+  } catch {
+    result = text;
+  }
+  if (!response.ok) {
+    throw new Error(result?.msg || result?.message || result?.error_description || result?.error || `Supabase respondió ${response.status}.`);
+  }
+  return result;
+}
+
+async function getSession() {
+  requireConfiguration();
+  let session = readStoredSession();
+  if (!session?.access_token) return null;
+
+  if (session.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
+    try {
+      session = await request("/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        body: { refresh_token: session.refresh_token },
+      });
+      session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
+      saveSession(session);
+    } catch {
+      clearStoredSession();
+      return null;
+    }
+  }
+  return session;
+}
+
+async function getDocument(accessToken) {
+  const rows = await request(`/rest/v1/portfolio_content?id=eq.${DOCUMENT_ID}&select=content`, { accessToken });
+  return rows?.[0]?.content ?? null;
+}
+
+async function saveDocument(content, accessToken) {
+  await request("/rest/v1/portfolio_content?on_conflict=id", {
+    method: "POST",
+    body: { id: DOCUMENT_ID, content },
+    accessToken,
+    prefer: "resolution=merge-duplicates,return=minimal",
+  });
+}
+
+function mergedSeed(data) {
+  return { ...clone(seed), ...(data || {}) };
+}
+
 const RESOURCES = {
   skills: { columns: ["group_name", "name", "level", "sort_order"], json: [], order: "sort" },
   experience: { columns: ["role", "org", "period", "description", "tags"], json: ["tags"], order: "idDesc" },
   achievements: { columns: ["value", "label", "detail"], json: [], order: "idDesc" },
   projects: { columns: ["title", "description", "category", "tags", "repo_url", "demo_url"], json: ["tags"], order: "idDesc" },
 };
-
 const PROFILE_COLUMNS = ["name", "role", "location", "summary", "bio", "email", "github", "linkedin", "facts"];
 
-const clone = (value) => JSON.parse(JSON.stringify(value));
-
-/* ------------------------------ almacenamiento ------------------------------ */
-
-function loadStore() {
-  try {
-    const raw = localStorage.getItem(DATA_KEY);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      // Completa con el seed cualquier clave que falte.
-      return { ...clone(seed), ...saved };
-    }
-  } catch {
-    // localStorage bloqueado o JSON dañado: se vuelve al seed.
-  }
-  return clone(seed);
-}
-
-function saveStore(store) {
-  try {
-    localStorage.setItem(DATA_KEY, JSON.stringify(store));
-  } catch {
-    throw new Error("No se pudo guardar en el navegador (¿almacenamiento bloqueado o lleno?).");
-  }
-}
-
-/* ---------------------------------- helpers --------------------------------- */
-
-function sortRows(name, rows) {
-  const order = RESOURCES[name].order;
+function sorted(name, rows) {
   const copy = [...rows];
-  if (order === "sort") {
-    return copy.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id);
-  }
-  return copy.sort((a, b) => b.id - a.id);
+  return RESOURCES[name].order === "sort"
+    ? copy.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
+    : copy.sort((a, b) => b.id - a.id);
 }
 
 function pickColumns(resource, body = {}) {
@@ -86,124 +129,89 @@ function pickColumns(resource, body = {}) {
   return row;
 }
 
-async function sha256Hex(text) {
-  if (!globalThis.crypto?.subtle) {
-    throw new Error("Este navegador no permite verificar la contraseña (hace falta HTTPS o localhost).");
-  }
-  const bytes = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/* ----------------------------------- sesión ---------------------------------- */
-
 export function getToken() {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
+  return readStoredSession()?.access_token || null;
 }
 
-export function setToken(token) {
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-  } catch {
-    // Sin storage la sesión dura hasta recargar; no es un error crítico.
-  }
+export function setToken() {
+  // apiLogin persists the complete Supabase session, including its refresh token.
 }
 
 export function clearToken() {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // nada que limpiar
+  const session = readStoredSession();
+  clearStoredSession();
+  if (session?.access_token && isApiConfigured) {
+    void request("/auth/v1/logout", { method: "POST", accessToken: session.access_token }).catch(() => {});
   }
 }
 
-/* ------------------------------------ API ------------------------------------ */
-
-/** Lectura pública. Paths: "/profile", "/skills", "/experience", "/achievements", "/projects". */
 export async function apiGet(path) {
-  const store = loadStore();
   const name = path.replace(/^\//, "");
-
-  if (name === "profile") return clone(store.profile ?? null);
-  if (RESOURCES[name]) return clone(sortRows(name, store[name] ?? []));
-
-  throw new Error(`Recurso desconocido: ${path}`);
+  if (name !== "profile" && !RESOURCES[name]) throw new Error(`Recurso desconocido: ${path}`);
+  const data = mergedSeed(await getDocument());
+  if (name === "profile") return clone(data.profile ?? null);
+  return clone(sorted(name, data[name] ?? []));
 }
 
-/** Escritura (POST / PUT / DELETE) y GET /admin/me. Exige haber desbloqueado la edición. */
 export async function apiAuthed(path, method, body) {
-  if (getToken() !== SESSION_VALUE) throw new Error("No autenticado.");
+  const session = await getSession();
+  if (!session) throw new Error("La sesión venció. Volvé a ingresar.");
+  if (ADMIN_EMAIL && session.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
+    clearToken();
+    throw new Error("La cuenta autenticada no es el administrador configurado.");
+  }
+  if (path === "/admin/me" && method === "GET") return { ok: true };
 
   const [name, id] = path.replace(/^\//, "").split("/");
-
-  if (name === "admin" && id === "me") return { ok: true };
-
-  const store = loadStore();
-
+  const document = mergedSeed(await getDocument(session.access_token));
   if (name === "profile") {
     if (method !== "PUT") throw new Error(`Método no soportado: ${method}`);
-    const next = {};
+    const profile = {};
     PROFILE_COLUMNS.forEach((col) => {
       const value = body?.[col];
-      next[col] = col === "bio" || col === "facts" ? (Array.isArray(value) ? value : []) : value ?? "";
+      profile[col] = col === "bio" || col === "facts" ? (Array.isArray(value) ? value : []) : value ?? "";
     });
-    store.profile = { id: 1, ...next };
-    saveStore(store);
-    return { ok: true };
+    document.profile = { id: 1, ...profile };
+  } else {
+    const resource = RESOURCES[name];
+    if (!resource) throw new Error(`Recurso desconocido: ${path}`);
+    const rows = document[name] ?? [];
+    if (method === "POST") {
+      const newId = rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+      document[name] = [...rows, { id: newId, ...pickColumns(resource, body) }];
+      await saveDocument(document, session.access_token);
+      return { id: newId };
+    }
+    const numericId = Number(id);
+    if (method === "PUT") document[name] = rows.map((row) => row.id === numericId ? { id: row.id, ...pickColumns(resource, body) } : row);
+    else if (method === "DELETE") document[name] = rows.filter((row) => row.id !== numericId);
+    else throw new Error(`Método no soportado: ${method}`);
   }
-
-  const resource = RESOURCES[name];
-  if (!resource) throw new Error(`Recurso desconocido: ${path}`);
-
-  const rows = store[name] ?? [];
-
-  if (method === "POST") {
-    const newId = rows.reduce((max, r) => Math.max(max, r.id), 0) + 1;
-    store[name] = [...rows, { id: newId, ...pickColumns(resource, body) }];
-    saveStore(store);
-    return { id: newId };
-  }
-
-  const numericId = Number(id);
-
-  if (method === "PUT") {
-    store[name] = rows.map((r) => (r.id === numericId ? { id: r.id, ...pickColumns(resource, body) } : r));
-    saveStore(store);
-    return { ok: true };
-  }
-
-  if (method === "DELETE") {
-    store[name] = rows.filter((r) => r.id !== numericId);
-    saveStore(store);
-    return { ok: true };
-  }
-
-  throw new Error(`Método no soportado: ${method}`);
+  await saveDocument(document, session.access_token);
+  return { ok: true };
 }
 
-/** Login de edición: compara el SHA-256 de la contraseña con el configurado. */
 export async function apiLogin(password) {
   if (!password) throw new Error("Falta la contraseña.");
-  const hash = await sha256Hex(password);
-  if (hash !== PASSWORD_HASH) throw new Error("Contraseña incorrecta.");
-  return SESSION_VALUE;
+  if (!ADMIN_EMAIL) throw new Error("Falta VITE_SUPABASE_ADMIN_EMAIL en la configuración.");
+  const session = await request("/auth/v1/token?grant_type=password", {
+    method: "POST",
+    body: { email: ADMIN_EMAIL, password },
+  });
+  if (session.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
+    await request("/auth/v1/logout", { method: "POST", accessToken: session.access_token }).catch(() => {});
+    throw new Error("La cuenta autenticada no coincide con el administrador configurado.");
+  }
+  session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
+  saveSession(session);
+  return session.access_token;
 }
 
-/* ------------------------- exportar / importar / reset ------------------------ */
-
-/** Devuelve todo el contenido actual (mismo formato que src/data/seed.json). */
-export function exportData() {
-  return clone(loadStore());
+export async function exportData() {
+  return mergedSeed(await getDocument());
 }
 
-/** Reemplaza el contenido por el de un JSON exportado. Valida la estructura básica. */
-export function importData(data) {
+export async function importData(data) {
   if (!data || typeof data !== "object" || typeof data.profile !== "object") {
     throw new Error("El archivo no tiene el formato esperado.");
   }
@@ -212,14 +220,13 @@ export function importData(data) {
     if (!Array.isArray(data[name])) throw new Error(`Falta la lista "${name}" en el archivo.`);
     next[name] = data[name];
   }
-  saveStore(next);
+  const session = await getSession();
+  if (!session) throw new Error("La sesión venció. Volvé a ingresar.");
+  await saveDocument(next, session.access_token);
 }
 
-/** Descarta los cambios hechos en este navegador y vuelve a src/data/seed.json. */
-export function resetData() {
-  try {
-    localStorage.removeItem(DATA_KEY);
-  } catch {
-    // nada que limpiar
-  }
+export async function resetData() {
+  const session = await getSession();
+  if (!session) throw new Error("La sesión venció. Volvé a ingresar.");
+  await saveDocument(clone(seed), session.access_token);
 }

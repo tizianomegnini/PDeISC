@@ -1,44 +1,36 @@
-# Portfolio personal — React + Vite (sin backend)
+# Portfolio personal — React + Vite + Supabase
 
-Portfolio de una sola página con **React** y **Vite**. No necesita MySQL,
-ni servidor, ni puertos extra: todo corre en el navegador, así que se
-despliega en **Vercel** tal cual.
+Portfolio de una sola página con React y Vite. El sitio puede desplegarse en Vercel y el contenido se guarda en una base de datos PostgreSQL alojada en Supabase.
 
-Incluye modo claro/oscuro, animaciones al hacer scroll, botón "volver
-arriba" y **edición inline** (botón "✎ Editar" en cada sección) protegida
-con una contraseña.
+Incluye modo claro/oscuro, animaciones al hacer scroll y edición inline del perfil, habilidades, logros, experiencia y proyectos. Los cambios guardados en Supabase se comparten con todas las visitas.
 
-## Cómo funcionan los datos
+## Configurar Supabase
 
-- El contenido inicial está en **`src/data/seed.json`**.
-- Cuando editás algo desde el sitio, se guarda en el **localStorage de tu
-  navegador** (`src/lib/apiClient.js`). Los demás visitantes no ven esos
-  cambios.
-- Para **publicar** tus cambios:
-  1. Desbloqueá la edición (candado, abajo a la izquierda).
-  2. Tocá el botón de descarga que aparece arriba del candado → **Exportar contenido**.
-  3. Reemplazá `src/data/seed.json` con el archivo descargado.
-  4. `git add . && git commit -m "Actualizo contenido" && git push` → Vercel despliega solo.
-- Ese mismo panel permite **importar** un archivo y **restablecer** (descartar lo editado en tu navegador).
+1. Creá un proyecto en [Supabase](https://supabase.com/) y copiá la Project URL y la publishable key desde **Project Settings → API Keys**.
+2. En **SQL Editor**, ejecutá [`supabase/setup.sql`](supabase/setup.sql). Antes de ejecutarlo, reemplazá `admin@tudominio.com` en la política RLS por el email que usarás como administrador.
+3. En **Authentication → Users**, creá el usuario administrador con ese email y una contraseña segura. Desactivá el registro público si no necesitás que otras personas creen cuentas.
+4. Copiá `.env.example` a `.env` y completa:
 
-> La contraseña se verifica en el navegador, así que es un candado "suave":
-> evita ediciones accidentales, pero no es seguridad real. Como las
-> ediciones nunca llegan a otros visitantes, no hay nada que proteger en un servidor.
+   ```env
+   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_tu_clave
+   VITE_SUPABASE_ADMIN_EMAIL=admin@tudominio.com
+   ```
 
-### Contraseña de edición
+5. Ejecutá `npm install` y `npm run dev`. En Vercel, cargá las mismas tres variables en **Settings → Environment Variables** y volvé a desplegar.
+6. Abrí el portfolio, ingresá al modo de edición con la contraseña del usuario administrador y usá **Importar archivo** para importar `src/data/seed.json` como contenido inicial.
 
-Por defecto es `Admin123!`. Para cambiarla:
+La publishable key se usa en el frontend y está protegida por RLS. Nunca pongas una secret key en variables `VITE_*` ni en el navegador.
 
-```bash
-npm run hash-password
-```
+## Editar el contenido
 
-Copiá la línea `VITE_ADMIN_PASSWORD_HASH=...` en tu `.env` (local) y en
-**Vercel → Settings → Environment Variables**.
+Desbloqueá la edición y usá los botones **Editar** de cada sección. Los cambios se escriben en Supabase y se reflejan para todos los visitantes. El panel **Datos** permite exportar el contenido a JSON, importar un JSON con la estructura de `src/data/seed.json` y restablecer los datos iniciales.
+
+La tabla contiene un único documento JSON (`portfolio_content`, id `main`). Las lecturas son públicas; las escrituras requieren una sesión autenticada cuyo email coincida con el administrador configurado en la política RLS.
 
 ## Correr localmente
 
-Requisitos: [Node.js](https://nodejs.org) 18 o superior.
+Requisitos: Node.js 18 o superior.
 
 ```bash
 npm install
@@ -49,30 +41,4 @@ Abrí `http://localhost:5173`.
 
 ## Desplegar en Vercel
 
-1. Subí el proyecto a GitHub.
-2. [vercel.com](https://vercel.com) → **Add New → Project** → elegí el repo
-   (Vercel detecta Vite: `npm run build` → `dist`).
-3. (Opcional) Agregá `VITE_ADMIN_PASSWORD_HASH` en las variables de entorno.
-4. **Deploy**.
-
-## Estructura
-
-```
-src/
-  components/          -> una sección por componente + Modal, EditModeButton, SectionEditButton
-  components/editors/  -> ProfileEditor, ApiListEditor y DataEditor (exportar/importar)
-  context/             -> ThemeContext y EditModeContext
-  hooks/               -> useReveal, useScrollInfo, usePortfolioData
-  lib/apiClient.js     -> base local (localStorage) con la misma interfaz que tenía la API
-  data/seed.json       -> contenido publicado del portfolio
-  data/fallbackData.js -> respaldo si alguna lista queda vacía
-  styles/              -> CSS por sección
-scripts/hash-password.js
-```
-
-## ¿Y si quiero que las ediciones las vean todos sin hacer push?
-
-Hace falta una base de datos en la nube (por ejemplo Supabase, Turso o
-Vercel KV/Blob), porque Vercel no permite guardar archivos ni correr un
-servidor MySQL propio. Se puede cambiar solo `src/lib/apiClient.js` y el
-resto de la app queda igual.
+Vercel detecta Vite y ejecuta `npm run build`. Añadí las variables de entorno de Supabase indicadas arriba en el proyecto de Vercel y desplegá nuevamente.

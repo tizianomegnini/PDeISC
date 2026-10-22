@@ -13,8 +13,8 @@ import {
  * usePortfolioData
  * -----------------
  * Centraliza la carga de TODA la información del portfolio (perfil,
- * habilidades, logros, experiencia y proyectos) desde la base local
- * del navegador (lib/apiClient.js, inicializada con src/data/seed.json).
+ * habilidades, logros, experiencia y proyectos) desde Supabase
+ * (lib/apiClient.js), usando datos de respaldo si la conexión falla.
  * Si algo falla o una lista está vacía, usa el dato de respaldo
  * correspondiente de src/data/fallbackData.js.
  *

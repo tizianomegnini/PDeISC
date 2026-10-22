@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Portfolio personal de una sola página con React + Vite. Sin backend: el contenido vive en src/data/seed.json y las ediciones se guardan en el navegador.",
+  "description": "Portfolio personal con React + Vite y contenido compartido en Supabase.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
