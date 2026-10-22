@@ -15,7 +15,7 @@ export default function RepairDetailScreen({route,navigation}) {
  return <ScrollView><Page><Heading title={`Orden #${repair.id}`} subtitle={`${repair.brand} ${repair.model} · ${repair.client_name||'Tu equipo'}`}/>
  <Text style={{color:theme.muted,marginBottom:15}}>Problema reportado: {repair.problem}</Text>
  {repair.technician_name?<Text style={{color:theme.muted,marginBottom:10}}>Técnico asignado: {repair.technician_name}</Text>:null}
- {user.role!=='cliente'?<>
+ {user.role==='admin'||user.role==='tecnico'?<>
  <Text style={{fontWeight:'800',color:theme.ink,marginBottom:8}}>Estado</Text>
  {statuses.map(s=><Text key={s} onPress={()=>setStatus(s)} style={{padding:10,borderRadius:9,overflow:'hidden',marginBottom:5,backgroundColor:status===s?'#DCE8FF':'#FFFFFF',color:status===s?theme.primary:theme.ink,borderWidth:1,borderColor:status===s?theme.primary:theme.border}}>{status===s?'● ':'○ '}{s}</Text>)}
  <Field label="Diagnóstico" value={diagnosis} onChangeText={setDiagnosis} multiline/>

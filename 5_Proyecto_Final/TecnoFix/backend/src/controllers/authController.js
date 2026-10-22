@@ -45,8 +45,9 @@ export async function login(req, res, next) {
   } catch (e) { next(e); }
 }
 export async function refresh(req, res, next) {
-  const conn = await pool.getConnection();
+  let conn;
   try {
+    conn = await pool.getConnection();
     const { refreshToken } = req.body || {};
     if (typeof refreshToken !== 'string') throw httpError(400, 'Falta refreshToken.');
     await conn.beginTransaction();
@@ -64,8 +65,8 @@ export async function refresh(req, res, next) {
     await conn.commit();
     const user = { id:row.user_id, name:row.name, email:row.email, role:row.role };
     res.json({ user, accessToken:signAccessToken(user), refreshToken:newRefresh });
-  } catch (e) { await conn.rollback(); next(e); }
-  finally { conn.release(); }
+  } catch (e) { if(conn) await conn.rollback(); next(e); }
+  finally { conn?.release(); }
 }
 export async function logout(req, res, next) {
   try {

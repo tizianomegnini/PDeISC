@@ -17,21 +17,24 @@ export async function listRepairs(req,res,next) {
   }catch(e){next(e);}
 }
 export async function createRepair(req,res,next) {
+  let conn;
   try {
+    conn=await pool.getConnection();
     const {device_id,problem}=req.body||{};
     if(!Number.isInteger(Number(device_id))||!requiredText(problem,4000)) throw httpError(400,'Elegí un dispositivo y describí el problema.');
-    const [devices]=await pool.execute('SELECT id FROM devices WHERE id=? AND user_id=?',[device_id,req.user.sub]);
+    const [devices]=await conn.execute('SELECT id FROM devices WHERE id=? AND user_id=?',[device_id,req.user.sub]);
     if(!devices.length) throw httpError(404,'Dispositivo no encontrado.');
-    const [result]=await pool.execute('INSERT INTO repair_orders (client_id,device_id,problem,status) VALUES (?,?,?,?)',
-      [req.user.sub,device_id,problem.trim(),statuses[0]]);
-    await pool.execute('INSERT INTO repair_history (repair_id,actor_id,old_status,new_status,comment) VALUES (?,?,?,?,?)',
-      [result.insertId,req.user.sub,null,statuses[0],'Solicitud creada por el cliente.']);
+    await conn.beginTransaction();
+    const [result]=await conn.execute('INSERT INTO repair_orders (client_id,device_id,problem,status) VALUES (?,?,?,?)',[req.user.sub,device_id,problem.trim(),statuses[0]]);
+    await conn.execute('INSERT INTO repair_history (repair_id,actor_id,old_status,new_status,comment) VALUES (?,?,?,?,?)',[result.insertId,req.user.sub,null,statuses[0],'Solicitud creada por el cliente.']);
+    await conn.commit();
     res.status(201).json({id:result.insertId,message:'Solicitud creada.'});
-  }catch(e){next(e);}
+  }catch(e){if(conn) await conn.rollback();next(e);}finally{conn?.release();}
 }
 export async function updateRepair(req,res,next) {
-  const conn=await pool.getConnection();
+  let conn;
   try {
+    conn=await pool.getConnection();
     const id=Number(req.params.id), {status,diagnosis,budget,notes,technician_id,comment}=req.body||{};
     await conn.beginTransaction();
     const [rows]=await conn.execute('SELECT * FROM repair_orders WHERE id=? FOR UPDATE',[id]);
@@ -59,7 +62,7 @@ export async function updateRepair(req,res,next) {
     }
     await conn.commit();
     res.json({message:'Orden actualizada.',id,status:newStatus});
-  }catch(e){await conn.rollback();next(e);}finally{conn.release();}
+  }catch(e){if(conn) await conn.rollback();next(e);}finally{conn?.release();}
 }
 export async function repairHistory(req,res,next) {
   try {

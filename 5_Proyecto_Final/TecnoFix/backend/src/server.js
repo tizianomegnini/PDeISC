@@ -8,5 +8,6 @@ try {
   console.log('MySQL conectado.');
 } catch(e) {
   console.error('No se pudo conectar a MySQL. Revisá backend/.env y database/schema.sql.',e.message);
+  process.exit(1);
 }
 app.listen(port,'0.0.0.0',()=>console.log(`TecnoFix API escuchando en http://0.0.0.0:${port}/api`));

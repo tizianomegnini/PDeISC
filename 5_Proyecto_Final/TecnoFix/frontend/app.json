@@ -1,20 +1,32 @@
 {
-  "expo": {
-    "name": "TecnoFix",
-    "slug": "tecnofix",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#0B1220"
-    },
-    "android": {
-      "package": "com.tecnofix.app",
-      "versionCode": 1
-    },
-    "plugins": [
-      "expo-status-bar"
-    ]
-  }
+    "expo":  {
+                 "name":  "TecnoFix",
+                 "slug":  "tecnofix",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "userInterfaceStyle":  "light",
+                 "android":  {
+                                 "package":  "com.tecnofix.app",
+                                 "versionCode":  1,
+                                 "permissions":  [
+                                                     "INTERNET",
+                                                     "ACCESS_NETWORK_STATE"
+                                                 ]
+                             },
+                 "extra":  {
+                               "eas":  {
+                                           "projectId":  "0722b09b-3908-499a-9718-1e7934cdd0ff"
+                                       }
+                           },
+                 "owner":  "tizianitopc",
+                 "plugins":  [
+                                 [
+                                     "expo-splash-screen",
+                                     {
+                                         "resizeMode":  "contain",
+                                         "backgroundColor":  "#0B1220"
+                                     }
+                                 ]
+                             ]
+             }
 }

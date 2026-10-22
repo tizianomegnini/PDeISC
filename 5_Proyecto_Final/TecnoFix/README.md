@@ -47,29 +47,20 @@ npx expo start
 Escaneá el QR con Expo Go. La PC y el teléfono deben estar en la misma red y el firewall debe permitir el puerto 4000. Si el QR no conecta, probá `npx expo start --tunnel` (esto no crea por sí solo un túnel para la API).
 
 ## Crear APK instalable
+
+El APK necesita que el backend esté desplegado en una URL HTTPS pública y accesible desde el teléfono. Una IP privada como `192.168.x.x` sirve para pruebas en la misma Wi-Fi, pero no para una instalación que deba funcionar fuera de esa red.
+
+Configurá la variable `EXPO_PUBLIC_API_URL` en **EAS > Project > Environment variables**, asignada al entorno `preview`, con la URL terminada en `/api` (por ejemplo `https://api.tudominio.com/api`). No cargues secretos del backend en variables `EXPO_PUBLIC_*`.
+
 Desde `frontend/`:
 ```bash
-npm install
+npm ci
 npx eas-cli login
 npx eas-cli build:configure
 npx eas-cli build --platform android --profile preview
 ```
-El perfil `preview` está configurado para generar APK. EAS compila en la nube y devuelve el enlace cuando termina. El APK **no viene generado dentro de este ZIP** porque requiere ejecutar el build con tu cuenta y comprobarlo.
+El perfil `preview` genera un APK de distribución interna y EAS devuelve el enlace cuando finaliza. La firma Android se puede crear con las credenciales administradas por EAS.
 
-## Roles
-- **Admin:** listado global de órdenes, creación de usuarios y asignación de técnicos.
-- **Técnico:** ve órdenes asignadas y puede actualizar estado, diagnóstico y presupuesto.
-- **Cliente:** ve sus dispositivos y órdenes; puede registrar dispositivos y solicitar reparaciones.
+### Version de Expo Go
 
-## Seguridad incluida
-- Hash de contraseñas con bcrypt
-- JWT de acceso y refresh token en endpoint separado
-- Consultas SQL parametrizadas
-- Validación de datos y control de roles en servidor
-- Helmet, CORS configurable y rate limiting básico
-- Respuestas JSON y middleware central de errores
-
-## Límites conocidos
-- OAuth Google/Facebook/Apple no está activado sin credenciales y configuración de cada proveedor. La app no muestra botones falsos para esos accesos.
-- Refresh token se emite para permitir ampliación de sesión; para producción se recomienda persistir sesiones, rotar y revocar refresh tokens por dispositivo. Esta versión usa una tabla de sesiones y endpoint de renovación/revocación.
-- Antes de producción: HTTPS, secretos seguros, backups, pruebas, revisión de permisos y política de privacidad.
+El frontend usa Expo SDK 57. Actualiza Expo Go desde Google Play antes de escanear el QR. Si Play Store todavia no ofrece la version compatible, instala la version Android para SDK 57 desde https://expo.dev/go.

@@ -10,8 +10,10 @@ export function AuthProvider({children}) {
       if(s.accessToken && s.user) {
         try { const data=await api('/users/me'); setUser({...s.user,...data.user}); }
         catch { if(s.refreshToken) {
-          const fresh=await api('/auth/refresh',{method:'POST',body:{refreshToken:s.refreshToken}});
-          await saveSession(fresh); setUser(fresh.user);
+          try {
+            const fresh=await api('/auth/refresh',{method:'POST',body:{refreshToken:s.refreshToken}});
+            await saveSession(fresh); setUser(fresh.user);
+          } catch { await clearSession(); }
         } else { await clearSession(); }
         }
       }

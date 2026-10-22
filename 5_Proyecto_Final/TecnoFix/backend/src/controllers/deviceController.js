@@ -15,8 +15,10 @@ export async function createDevice(req,res,next) {
   try {
     const {type,brand,model,serial_number,notes}=req.body||{};
     if(!requiredText(brand,100)||!requiredText(model,120)) throw httpError(400,'Marca y modelo son obligatorios.');
+    if(serial_number!==undefined && serial_number!==null && !requiredText(serial_number,120)) throw httpError(400,'El número de serie no puede superar 120 caracteres.');
+    if(notes!==undefined && notes!==null && typeof notes!=='string') throw httpError(400,'Las notas deben ser texto.');
     const [result]=await pool.execute('INSERT INTO devices (user_id,type,brand,model,serial_number,notes) VALUES (?,?,?,?,?,?)',
-      [req.user.sub,requiredText(type,60)?type.trim():'PC',brand.trim(),model.trim(),serial_number||null,notes||null]);
+      [req.user.sub,requiredText(type,60)?type.trim():'PC',brand.trim(),model.trim(),serial_number?.trim()||null,notes?.trim()||null]);
     res.status(201).json({id:result.insertId,message:'Dispositivo registrado.'});
   }catch(e){next(e);}
 }

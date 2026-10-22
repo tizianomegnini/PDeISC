@@ -10,7 +10,7 @@ function statusColor(status){if(['Entregada','Lista para entregar'].includes(sta
 export default function HomeScreen({navigation}) {
  const {user,logout}=useAuth();
  const [repairs,setRepairs]=useState([]),[devices,setDevices]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState('');
- const load=useCallback(async()=>{try{setError('');const r=await api('/repairs');setRepairs(r.repairs||[]);const d=await api('/devices');setDevices(d.devices||[]);}catch(e){setError(e.message);}finally{setLoading(false);setRefreshing(false);}},[]);
+ const load=useCallback(async()=>{try{setError('');const r=await api('/repairs');setRepairs(r.repairs||[]);if(user?.role==='cliente'){const d=await api('/devices');setDevices(d.devices||[]);}else{setDevices([]);}}catch(e){setError(e.message);}finally{setLoading(false);setRefreshing(false);}},[user?.role]);
  useFocusEffect(useCallback(()=>{load();},[load]));
  const askLogout=()=>Alert.alert('Cerrar sesión','¿Querés salir de TecnoFix?',[{text:'Cancelar',style:'cancel'},{text:'Salir',style:'destructive',onPress:logout}]);
  return <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>{setRefreshing(true);load();}}/>}><Page>
