@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { apiGet, isApiConfigured } from "../lib/apiClient";
 import { useEditMode } from "../context/EditModeContext";
 import {
@@ -12,16 +12,16 @@ import {
 /**
  * usePortfolioData
  * -----------------
- * Centraliza la carga de TODA la información del portfolio (perfil,
- * habilidades, logros, experiencia y proyectos) desde Supabase
- * (lib/apiClient.js), usando datos de respaldo si la conexión falla.
- * Si algo falla o una lista está vacía, usa el dato de respaldo
+ * Centraliza la carga de TODA la informaciÃ³n del portfolio (perfil,
+ * habilidades, logros, experiencia y proyectos) desde la API del proyecto
+ * (lib/apiClient.js), usando datos de respaldo si la conexiÃ³n falla.
+ * Si algo falla o una lista estÃ¡ vacÃ­a, usa el dato de respaldo
  * correspondiente de src/data/fallbackData.js.
  *
- * También escucha `changeSignal` de EditModeContext: cada vez que se
+ * TambiÃ©n escucha `changeSignal` de EditModeContext: cada vez que se
  * guarda algo desde uno de los editores (ver components/editors), este
- * hook vuelve a pedir los datos, así los cambios se ven al instante sin
- * recargar la página.
+ * hook vuelve a pedir los datos, asÃ­ los cambios se ven al instante sin
+ * recargar la pÃ¡gina.
  *
  * @returns {{ data: object, loading: boolean }}
  */
@@ -92,3 +92,4 @@ function skillsToGroups(rows) {
   });
   return Array.from(map.values());
 }
+

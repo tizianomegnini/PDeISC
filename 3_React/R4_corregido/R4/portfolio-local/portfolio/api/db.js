@@ -47,16 +47,26 @@ function createPoolConfig() {
   };
 }
 
-const poolConfig = {
-  ...createPoolConfig(),
-  waitForConnections: true,
-  connectionLimit: 5,
-  connectTimeout: 10000,
-  ...(process.env.MYSQL_SSL === "true" ? { ssl: { rejectUnauthorized: true } } : {}),
-};
+function getPool() {
+  if (!globalThis.__portfolioMysqlPool) {
+    const poolConfig = {
+      ...createPoolConfig(),
+      waitForConnections: true,
+      connectionLimit: 5,
+      connectTimeout: 10000,
+      ...(process.env.MYSQL_SSL === "true" ? { ssl: { rejectUnauthorized: true } } : {}),
+    };
+    globalThis.__portfolioMysqlPool = mysql.createPool(poolConfig);
+  }
+  return globalThis.__portfolioMysqlPool;
+}
 
-export const pool = globalThis.__portfolioMysqlPool || mysql.createPool(poolConfig);
-globalThis.__portfolioMysqlPool = pool;
+// Defer configuration validation until a handler call, so health.js can return
+// a useful JSON error instead of Vercel's generic FUNCTION_INVOCATION_FAILED.
+export const pool = {
+  execute: (...args) => getPool().execute(...args),
+  query: (...args) => getPool().query(...args),
+};
 
 export async function ensureSchema() {
   await pool.execute(`

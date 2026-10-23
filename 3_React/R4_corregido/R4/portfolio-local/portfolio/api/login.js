@@ -21,13 +21,20 @@ export default async function handler(req, res) {
     });
   }
 
+  if (!/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(passwordHash)) {
+    console.error("ADMIN_PASSWORD_HASH no tiene un formato bcrypt válido");
+    return res.status(500).json({
+      error: "ADMIN_PASSWORD_HASH no tiene un hash bcrypt válido. Generá uno con npm run hash-password y actualizalo en Vercel.",
+    });
+  }
+
   if (
     typeof password !== "string" ||
     password.length === 0 ||
     password.length > 1024
   ) {
     return res.status(401).json({
-      error: "Credenciales incorrectas",
+      error: "La contraseña es incorrecta. Comprobá que coincida con la usada para generar ADMIN_PASSWORD_HASH.",
     });
   }
 
@@ -39,7 +46,7 @@ export default async function handler(req, res) {
 
     if (!valid) {
       return res.status(401).json({
-        error: "Credenciales incorrectas",
+        error: "La contraseña es incorrecta. Comprobá que coincida con la usada para generar ADMIN_PASSWORD_HASH.",
       });
     }
 

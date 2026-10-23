@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+﻿import { useRef, useState } from "react";
 import { exportData, importData, resetData } from "../../lib/apiClient";
 import { useEditMode } from "../../context/EditModeContext";
 import "../../styles/editors.css";
@@ -7,7 +7,7 @@ import "../../styles/editors.css";
  * DataEditor
  * ----------
  * Panel para llevarse / traerse el contenido del portfolio. Los cambios que
- * importar, exportar o restablecer el contenido compartido en Supabase.
+ * importar, exportar o restablecer el contenido compartido en Railway.
  */
 export default function DataEditor() {
   const { notifyChanged } = useEditMode();
@@ -24,7 +24,7 @@ export default function DataEditor() {
       a.download = "seed.json";
       a.click();
       URL.revokeObjectURL(url);
-      setStatus("Listo: se descargó el contenido actual del portfolio.");
+      setStatus("Listo: se descargÃ³ el contenido actual del portfolio.");
     } catch (err) {
       setStatus("No se pudo exportar: " + err.message);
     }
@@ -48,7 +48,7 @@ export default function DataEditor() {
       await resetData();
       notifyChanged();
       setConfirmReset(false);
-      setStatus("El contenido de Supabase volvió a los datos iniciales de seed.json.");
+      setStatus("El contenido de Railway volviÃ³ a los datos iniciales de seed.json.");
     } catch (err) {
       setStatus("No se pudo restablecer: " + err.message);
     }
@@ -60,14 +60,14 @@ export default function DataEditor() {
 
       <div className="editor__row">
         <p>
-          El contenido se guarda en <strong>Supabase</strong> y los cambios quedan disponibles para todos los visitantes.
+          El contenido se guarda en <strong>Railway</strong> y los cambios quedan disponibles para todos los visitantes.
         </p>
         <div className="editor__actions">
           <button type="button" className="btn btn--primary" onClick={handleExport}>
             Exportar contenido
           </button>
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
-            Importar archivo…
+            Importar archivoâ€¦
           </button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={handleImport} />
         </div>
@@ -75,7 +75,7 @@ export default function DataEditor() {
 
       <div className="editor__row">
         <h4 className="editor__subtitle">Descartar cambios</h4>
-        <p>Reemplaza el contenido compartido en Supabase por los datos iniciales de seed.json.</p>
+        <p>Reemplaza el contenido compartido en Railway por los datos iniciales de seed.json.</p>
         <div className="editor__actions">
           {confirmReset ? (
             <>
@@ -83,7 +83,7 @@ export default function DataEditor() {
                 Cancelar
               </button>
               <button type="button" className="btn editor__danger" onClick={handleReset}>
-                Sí, restablecer
+                SÃ­, restablecer
               </button>
             </>
           ) : (
@@ -96,3 +96,4 @@ export default function DataEditor() {
     </div>
   );
 }
+

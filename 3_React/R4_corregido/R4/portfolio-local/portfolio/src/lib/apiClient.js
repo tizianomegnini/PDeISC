@@ -23,10 +23,25 @@ function request(path, { method = "GET", body, token } = {}) {
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  }).catch(() => {
+    throw new Error("No se pudo contactar la API. En local, iniciá el proyecto con `npx vercel dev`; en el sitio publicado, revisá que Vercel haya desplegado la carpeta del portfolio.");
   }).then(async (response) => {
-    const result = await response.json().catch(() => null);
+    const text = await response.text();
+    let result = null;
+    try {
+      result = text ? JSON.parse(text) : null;
+    } catch {
+      // Puede ser HTML si la plataforma no encontró la función API.
+    }
     if (!response.ok) {
-      throw new Error(result?.error || `La API respondió ${response.status}.`);
+      if (result?.error) throw new Error(result.error);
+      if (response.status === 404) {
+        throw new Error(`No se encontró ${API_BASE}${path}. En local usá npx vercel dev; en Vercel revisá que la carpeta raíz sea portfolio y volvé a desplegar.`);
+      }
+      throw new Error(`La API respondió ${response.status} sin un mensaje válido. Revisá los registros de Functions en Vercel.`);
+    }
+    if (result === null && text) {
+      throw new Error("La API devolvió una respuesta que no es JSON. Revisá el deployment de Vercel.");
     }
     return result;
   });
@@ -134,6 +149,7 @@ export async function apiLogin(password) {
     method: "POST",
     body: { password },
   });
+  if (!session?.access_token) throw new Error("La API no devolvió una sesión válida. Revisá la función /api/login en Vercel.");
   setToken(session.access_token);
   return session.access_token;
 }
