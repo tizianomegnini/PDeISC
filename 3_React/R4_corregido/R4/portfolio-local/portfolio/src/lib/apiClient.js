@@ -28,8 +28,10 @@ function request(path, { method = "GET", body, token } = {}) {
   }).then(async (response) => {
     const text = await response.text();
     let result = null;
+    let isJson = false;
     try {
       result = text ? JSON.parse(text) : null;
+      isJson = Boolean(text);
     } catch {
       // Puede ser HTML si la plataforma no encontró la función API.
     }
@@ -40,7 +42,7 @@ function request(path, { method = "GET", body, token } = {}) {
       }
       throw new Error(`La API respondió ${response.status} sin un mensaje válido. Revisá los registros de Functions en Vercel.`);
     }
-    if (result === null && text) {
+    if (text && !isJson) {
       throw new Error("La API devolvió una respuesta que no es JSON. Revisá el deployment de Vercel.");
     }
     return result;
