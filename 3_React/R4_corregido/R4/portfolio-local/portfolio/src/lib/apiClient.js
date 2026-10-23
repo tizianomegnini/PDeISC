@@ -1,109 +1,38 @@
 import seed from "../data/seed.json";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const ADMIN_EMAIL = import.meta.env.VITE_SUPABASE_ADMIN_EMAIL?.trim().toLowerCase();
-const SESSION_KEY = "portfolio-supabase-session";
-const DOCUMENT_ID = "main";
+const API_BASE = "/api";
+const SESSION_KEY = "portfolio-api-token";
 
-export const isApiConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
+export const isApiConfigured = true;
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
-function requireConfiguration() {
-  if (!isApiConfigured) {
-    throw new Error("Falta configurar Supabase. Revisá las variables de entorno del proyecto.");
-  }
-}
-
-function readStoredSession() {
+function readToken() {
   try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    return localStorage.getItem(SESSION_KEY);
   } catch {
     return null;
   }
 }
 
-function saveSession(session) {
-  try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch {
-    throw new Error("No se pudo guardar la sesión en este navegador.");
-  }
-}
-
-function clearStoredSession() {
-  try {
-    localStorage.removeItem(SESSION_KEY);
-  } catch {
-    // La sesión del servidor sigue siendo la autoridad.
-  }
-}
-
-async function request(path, { method = "GET", body, accessToken, prefer } = {}) {
-  requireConfiguration();
-  const response = await fetch(`${SUPABASE_URL}${path}`, {
+function request(path, { method = "GET", body, token } = {}) {
+  return fetch(`${API_BASE}${path}`, {
     method,
     headers: {
-      apikey: SUPABASE_KEY,
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-      ...(prefer ? { Prefer: prefer } : {}),
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-
-  const text = await response.text();
-  let result = null;
-  try {
-    result = text ? JSON.parse(text) : null;
-  } catch {
-    result = text;
-  }
-  if (!response.ok) {
-    throw new Error(result?.msg || result?.message || result?.error_description || result?.error || `Supabase respondió ${response.status}.`);
-  }
-  return result;
-}
-
-async function getSession() {
-  requireConfiguration();
-  let session = readStoredSession();
-  if (!session?.access_token) return null;
-
-  if (session.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
-    try {
-      session = await request("/auth/v1/token?grant_type=refresh_token", {
-        method: "POST",
-        body: { refresh_token: session.refresh_token },
-      });
-      session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
-      saveSession(session);
-    } catch {
-      clearStoredSession();
-      return null;
+  }).then(async (response) => {
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.error || `La API respondió ${response.status}.`);
     }
-  }
-  return session;
-}
-
-async function getDocument(accessToken) {
-  const rows = await request(`/rest/v1/portfolio_content?id=eq.${DOCUMENT_ID}&select=content`, { accessToken });
-  return rows?.[0]?.content ?? null;
-}
-
-async function saveDocument(content, accessToken) {
-  await request("/rest/v1/portfolio_content?on_conflict=id", {
-    method: "POST",
-    body: { id: DOCUMENT_ID, content },
-    accessToken,
-    prefer: "resolution=merge-duplicates,return=minimal",
+    return result;
   });
 }
 
-function mergedSeed(data) {
-  return { ...clone(seed), ...(data || {}) };
-}
+const mergedSeed = (data) => ({ ...clone(seed), ...(data || {}) });
 
 const RESOURCES = {
   skills: { columns: ["group_name", "name", "level", "sort_order"], json: [], order: "sort" },
@@ -130,19 +59,31 @@ function pickColumns(resource, body = {}) {
 }
 
 export function getToken() {
-  return readStoredSession()?.access_token || null;
+  return readToken();
 }
 
-export function setToken() {
-  // apiLogin persists the complete Supabase session, including its refresh token.
+export function setToken(token) {
+  try {
+    localStorage.setItem(SESSION_KEY, token);
+  } catch {
+    throw new Error("No se pudo guardar la sesión en este navegador.");
+  }
 }
 
 export function clearToken() {
-  const session = readStoredSession();
-  clearStoredSession();
-  if (session?.access_token && isApiConfigured) {
-    void request("/auth/v1/logout", { method: "POST", accessToken: session.access_token }).catch(() => {});
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // La sesión local ya no puede volver a usarse si el navegador bloquea el almacenamiento.
   }
+}
+
+async function getDocument(token) {
+  return (await request("/portfolio", { token })) ?? null;
+}
+
+async function saveDocument(content, token) {
+  await request("/portfolio", { method: "PUT", body: { content }, token });
 }
 
 export async function apiGet(path) {
@@ -154,16 +95,12 @@ export async function apiGet(path) {
 }
 
 export async function apiAuthed(path, method, body) {
-  const session = await getSession();
-  if (!session) throw new Error("La sesión venció. Volvé a ingresar.");
-  if (ADMIN_EMAIL && session.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
-    clearToken();
-    throw new Error("La cuenta autenticada no es el administrador configurado.");
-  }
-  if (path === "/admin/me" && method === "GET") return { ok: true };
+  const token = getToken();
+  if (!token) throw new Error("La sesión venció. Volvé a ingresar.");
+  if (path === "/admin/me" && method === "GET") return request("/admin/me", { token });
 
   const [name, id] = path.replace(/^\//, "").split("/");
-  const document = mergedSeed(await getDocument(session.access_token));
+  const document = mergedSeed(await getDocument(token));
   if (name === "profile") {
     if (method !== "PUT") throw new Error(`Método no soportado: ${method}`);
     const profile = {};
@@ -179,7 +116,7 @@ export async function apiAuthed(path, method, body) {
     if (method === "POST") {
       const newId = rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
       document[name] = [...rows, { id: newId, ...pickColumns(resource, body) }];
-      await saveDocument(document, session.access_token);
+      await saveDocument(document, token);
       return { id: newId };
     }
     const numericId = Number(id);
@@ -187,23 +124,17 @@ export async function apiAuthed(path, method, body) {
     else if (method === "DELETE") document[name] = rows.filter((row) => row.id !== numericId);
     else throw new Error(`Método no soportado: ${method}`);
   }
-  await saveDocument(document, session.access_token);
+  await saveDocument(document, token);
   return { ok: true };
 }
 
 export async function apiLogin(password) {
   if (!password) throw new Error("Falta la contraseña.");
-  if (!ADMIN_EMAIL) throw new Error("Falta VITE_SUPABASE_ADMIN_EMAIL en la configuración.");
-  const session = await request("/auth/v1/token?grant_type=password", {
+  const session = await request("/login", {
     method: "POST",
-    body: { email: ADMIN_EMAIL, password },
+    body: { password },
   });
-  if (session.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
-    await request("/auth/v1/logout", { method: "POST", accessToken: session.access_token }).catch(() => {});
-    throw new Error("La cuenta autenticada no coincide con el administrador configurado.");
-  }
-  session.expires_at = Math.floor(Date.now() / 1000) + (session.expires_in || 3600);
-  saveSession(session);
+  setToken(session.access_token);
   return session.access_token;
 }
 
@@ -220,13 +151,13 @@ export async function importData(data) {
     if (!Array.isArray(data[name])) throw new Error(`Falta la lista "${name}" en el archivo.`);
     next[name] = data[name];
   }
-  const session = await getSession();
-  if (!session) throw new Error("La sesión venció. Volvé a ingresar.");
-  await saveDocument(next, session.access_token);
+  const token = getToken();
+  if (!token) throw new Error("La sesión venció. Volvé a ingresar.");
+  await saveDocument(next, token);
 }
 
 export async function resetData() {
-  const session = await getSession();
-  if (!session) throw new Error("La sesión venció. Volvé a ingresar.");
-  await saveDocument(clone(seed), session.access_token);
+  const token = getToken();
+  if (!token) throw new Error("La sesión venció. Volvé a ingresar.");
+  await saveDocument(clone(seed), token);
 }

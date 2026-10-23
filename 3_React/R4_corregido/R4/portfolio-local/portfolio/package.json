@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Portfolio personal con React + Vite y contenido compartido en Supabase.",
+  "description": "Portfolio personal con React, API serverless en Vercel y MySQL en Railway.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

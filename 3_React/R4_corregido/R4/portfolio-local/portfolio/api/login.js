@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const { email, password } = req.body ?? {};
+  const { password } = req.body ?? {};
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const passwordHash = process.env.ADMIN_PASSWORD_HASH;
   const jwtSecret = process.env.JWT_SECRET;
@@ -22,9 +22,7 @@ export default async function handler(req, res) {
   }
 
   if (
-    typeof email !== "string" ||
     typeof password !== "string" ||
-    email.trim().toLowerCase() !== adminEmail ||
     password.length === 0 ||
     password.length > 1024
   ) {

@@ -1,31 +1,8 @@
 
-import jwt from "jsonwebtoken";
 import { pool, ensureSchema } from "./db.js";
+import { isAdmin } from "./auth.js";
 
 const DOCUMENT_ID = "main";
-
-function isAdmin(req) {
-  const secret = process.env.JWT_SECRET;
-  const authorization = req.headers.authorization || "";
-
-  if (!secret || !authorization.startsWith("Bearer ")) {
-    return false;
-  }
-
-  try {
-    const token = authorization.slice(7);
-    const payload = jwt.verify(token, secret, {
-      issuer: "portfolio-api",
-    });
-
-    return (
-      payload.role === "admin" &&
-      payload.sub === process.env.ADMIN_EMAIL?.trim().toLowerCase()
-    );
-  } catch {
-    return false;
-  }
-}
 
 export default async function handler(req, res) {
   try {
@@ -55,7 +32,9 @@ export default async function handler(req, res) {
         !content ||
         typeof content !== "object" ||
         Array.isArray(content) ||
+        !content.profile ||
         typeof content.profile !== "object" ||
+        Array.isArray(content.profile) ||
         !Array.isArray(content.skills) ||
         !Array.isArray(content.achievements) ||
         !Array.isArray(content.experience) ||

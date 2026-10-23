@@ -1,44 +1,41 @@
-# Portfolio personal — React + Vite + Supabase
+# Portfolio React + Vercel + Railway
 
-Portfolio de una sola página con React y Vite. El sitio puede desplegarse en Vercel y el contenido se guarda en una base de datos PostgreSQL alojada en Supabase.
+Aplicación React/Vite con una API serverless en Vercel. La API guarda el contenido del portfolio en MySQL alojado en Railway. El navegador solo llama a `/api`; las credenciales de Railway y del administrador quedan en el servidor.
 
-Incluye modo claro/oscuro, animaciones al hacer scroll y edición inline del perfil, habilidades, logros, experiencia y proyectos. Los cambios guardados en Supabase se comparten con todas las visitas.
+## Variables de entorno
 
-## Configurar Supabase
+Configuralas en **Vercel → Project → Settings → Environment Variables** para Production, Preview y Development según corresponda:
 
-1. Creá un proyecto en [Supabase](https://supabase.com/) y copiá la Project URL y la publishable key desde **Project Settings → API Keys**.
-2. En **SQL Editor**, ejecutá [`supabase/setup.sql`](supabase/setup.sql). Antes de ejecutarlo, reemplazá `admin@tudominio.com` en la política RLS por el email que usarás como administrador.
-3. En **Authentication → Users**, creá el usuario administrador con ese email y una contraseña segura. Desactivá el registro público si no necesitás que otras personas creen cuentas.
-4. Copiá `.env.example` a `.env` y completa:
+| Variable | Valor |
+| --- | --- |
+| `MYSQL_PUBLIC_URL` | URL MySQL del TCP Proxy público de Railway, con usuario, contraseña, host, puerto y base. |
+| `ADMIN_EMAIL` | Email de administrador. |
+| `ADMIN_PASSWORD_HASH` | Hash bcrypt de la contraseña del administrador. |
+| `JWT_SECRET` | Secreto aleatorio largo para firmar sesiones. |
+| `MYSQL_SSL` | Opcional. Usar `true` solo si Railway/proveedor exige TLS. |
 
-   ```env
-   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_tu_clave
-   VITE_SUPABASE_ADMIN_EMAIL=admin@tudominio.com
-   ```
+En Railway, abrí el servicio MySQL, habilitá **Public Networking / TCP Proxy** y copiá los datos públicos de conexión. La URL privada con host `*.railway.internal` funciona entre servicios de Railway, pero Vercel no puede alcanzarla. No uses la URL privada como `MYSQL_PUBLIC_URL`.
 
-5. Ejecutá `npm install` y `npm run dev`. En Vercel, cargá las mismas tres variables en **Settings → Environment Variables** y volvé a desplegar.
-6. Abrí el portfolio, ingresá al modo de edición con la contraseña del usuario administrador y usá **Importar archivo** para importar `src/data/seed.json` como contenido inicial.
+El proyecto crea automáticamente la tabla `portfolio_content` en el primer acceso. Revisá que el usuario MySQL tenga permisos para crear tablas y leer/escribir en la base configurada.
 
-La publishable key se usa en el frontend y está protegida por RLS. Nunca pongas una secret key en variables `VITE_*` ni en el navegador.
+## Contraseña del administrador
 
-## Editar el contenido
+Desde esta carpeta, ejecutá `npm run hash-password` y seguí la indicación para generar el hash bcrypt. Pegá el resultado en `ADMIN_PASSWORD_HASH`; la contraseña en texto plano no se guarda en el proyecto. Generá además un valor aleatorio largo para `JWT_SECRET`.
 
-Desbloqueá la edición y usá los botones **Editar** de cada sección. Los cambios se escriben en Supabase y se reflejan para todos los visitantes. El panel **Datos** permite exportar el contenido a JSON, importar un JSON con la estructura de `src/data/seed.json` y restablecer los datos iniciales.
+## Despliegue en Vercel
 
-La tabla contiene un único documento JSON (`portfolio_content`, id `main`). Las lecturas son públicas; las escrituras requieren una sesión autenticada cuyo email coincida con el administrador configurado en la política RLS.
+Configurá como **Root Directory** la carpeta `3_React/R4_corregido/R4/portfolio-local/portfolio` (o importá esa carpeta como raíz del proyecto). Vercel debe ejecutar `npm run build` y publicar `dist`. Después de agregar o cambiar variables, hacé un nuevo deployment.
 
-## Correr localmente
+Probá la conexión abriendo `/api/health` en el dominio del deployment. Una respuesta `{ "ok": true, "database": "MySQL", "connected": true }` confirma la conexión. Si falla, el log de Functions de Vercel contiene el detalle del error; no publiques la URL de conexión ni su contraseña.
 
-Requisitos: Node.js 18 o superior.
+## Desarrollo local
 
-```bash
-npm install
-npm run dev
-```
+1. Copiá `.env.example` a `.env.local` y completá las mismas variables. Usá el endpoint TCP público de Railway si probás desde tu computadora.
+2. Instalá dependencias con `npm install`.
+3. Ejecutá `npx vercel dev` para levantar el frontend y las funciones `/api` juntas.
 
-Abrí `http://localhost:5173`.
+`npm run dev` inicia Vite solamente; para probar la API y la base localmente, usá `vercel dev`.
 
-## Desplegar en Vercel
+## Contenido inicial y edición
 
-Vercel detecta Vite y ejecuta `npm run build`. Añadí las variables de entorno de Supabase indicadas arriba en el proyecto de Vercel y desplegá nuevamente.
+Si la tabla todavía no tiene el documento `main`, el sitio muestra los datos de `src/data/seed.json`. Ingresá al modo de edición con la contraseña configurada y usá el panel **Datos → Importar archivo** para guardar el contenido inicial en Railway. Las lecturas son públicas y las escrituras requieren un token administrador firmado por la API.
