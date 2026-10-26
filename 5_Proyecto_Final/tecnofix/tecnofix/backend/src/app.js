@@ -12,6 +12,7 @@ import adminRoutes from './routes/admin.js';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } })); // la API la consume otro origen (React en :5173)
   app.use(cors({ origin: env.corsOrigins, credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] }));
   app.use(express.json({ limit: '100kb' }));
