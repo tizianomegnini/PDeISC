@@ -18,35 +18,6 @@ async function request(method, path, body) {
   } catch {
     throw new ApiError('No se pudo conectar con el servidor. ¿Está iniciado el backend (npm run dev)?', 0);
   }
-  async function requestForm(path, form) {
-    let res;
-    try {
-      res = await fetch(`${BASE}${path}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'X-Requested-With': 'tecnofix' },
-        body: form,
-      });
-    } catch {
-      throw new ApiError('No se pudo conectar con el servidor. ¿Está iniciado el backend (npm run dev)?', 0);
-    }
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
-    return data;
-  }
-  async function requestBlob(path) {
-    let res;
-    try {
-      res = await fetch(`${BASE}${path}`, { credentials: 'include' });
-    } catch {
-      throw new ApiError('No se pudo descargar el archivo. Revisá tu conexión e intentá de nuevo.', 0);
-    }
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
-    }
-    return res.blob();
-  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
   return data;
@@ -73,13 +44,6 @@ export const consultasApi = {
   setEstado: (id, estado) => patch(`/consultas/${id}/estado`, { estado }),
   mensajes: (id) => get(`/consultas/${id}/mensajes`),
   enviarMensaje: (id, contenido) => post(`/consultas/${id}/mensajes`, { contenido }),
-  enviarAdjuntos: (id, files, contenido = '') => {
-    const form = new FormData();
-    if (contenido.trim()) form.append('contenido', contenido.trim());
-    files.forEach((file) => form.append('archivos', file));
-    return requestForm(`/consultas/${id}/mensajes/adjuntos`, form);
-  },
-  descargarAdjunto: (consultaId, adjuntoId) => requestBlob(`/consultas/${consultaId}/mensajes/adjuntos/${adjuntoId}`),
   valorar: (id, estrellas, comentario) => post(`/consultas/${id}/valoracion`, { estrellas, comentario }),
 };
 export const tecnicoApi = { resumen: () => get('/tecnico/resumen') };

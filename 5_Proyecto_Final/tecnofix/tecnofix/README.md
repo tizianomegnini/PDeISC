@@ -2,7 +2,10 @@
 
 Soporte técnico con tres roles (cliente, técnico, administrador), asignación automática de consultas, mensajes y valoraciones.
 Al crear una consulta, el cliente puede dejar sin completar tipo, marca y modelo; luego puede conversar con el técnico desde el detalle de la consulta una vez asignada.
+<<<<<<< HEAD
 El chat permite elegir o tomar una foto JPG/PNG/WEBP de hasta 5 MB por mensaje. Las fotos se guardan temporalmente durante la ejecución del proceso; si Railway reinicia o cambia de instancia, el chat conserva el aviso “Foto enviada”, pero no la foto.
+=======
+>>>>>>> parent of 42f1ba7 (Intentodeenviodearchivos)
 **Todo corre en su computadora**: React (Vite) + Express + MySQL local. Sin servicios en la nube.
 
 | Parte | Dirección |
@@ -65,8 +68,6 @@ cd backend
 npm run db:init     # crea la base "tecnofix" (utf8mb4) y todas las tablas desde database\schema.sql
 npm run db:seed     # 3 locales, 15 técnicos (5 por local), 1 admin y 1 cliente demo
 ```
-
-Para una base ya existente, ejecutar una vez el SQL de `backend/database/migrations/001_adjuntos.sql` (en Railway, desde un cliente SQL conectado al servicio MySQL). En una instalación nueva, `npm run db:init` crea también la tabla de adjuntos.
 
 El seed **genera contraseñas aleatorias** y las guarda en `backend\seed-credentials.local.txt` (archivo ignorado por Git).
 Si prefiere fijarlas, defina en `.env` `ADMIN_EMAIL`, `ADMIN_PASSWORD` y/o `SEED_USER_PASSWORD` antes de correr el seed.

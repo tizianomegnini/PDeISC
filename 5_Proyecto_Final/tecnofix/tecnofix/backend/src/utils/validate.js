@@ -41,9 +41,6 @@ export const schemas = {
   }),
   estado: z.object({ estado: z.enum(['en_proceso', 'esperando_cliente', 'finalizada', 'cancelada']) }),
   mensaje: z.object({ contenido: texto(1, 2000, 'El mensaje') }),
-  contenidoMensaje: z.object({
-    contenido: z.string().trim().max(2000, 'El mensaje admite hasta 2000 caracteres').optional(),
-  }),
   valoracion: z.object({
     estrellas: z.number({ invalid_type_error: 'Las estrellas deben ser un número', required_error: 'Indique las estrellas' }).int().min(1, 'Mínimo 1 estrella').max(5, 'Máximo 5 estrellas'),
     comentario: z.string().trim().max(500).optional().nullable().transform((v) => v || null),

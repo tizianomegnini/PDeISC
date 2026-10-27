@@ -1,16 +1,10 @@
 import { Router } from 'express';
 import { pool, withTransaction, audit } from '../config/db.js';
-import { ah, badRequest, conflict, forbidden, HttpError, notFound } from '../utils/errors.js';
+import { ah, badRequest, conflict, forbidden, notFound } from '../utils/errors.js';
 import { parse, schemas, idParam } from '../utils/validate.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
-import {
-  ADJUNTOS_DIR, adjuntoDisponible, eliminarAdjuntosTemporales,
-  guardarAdjuntosTemporales, parseAdjuntos,
-} from '../middleware/upload.js';
 import { asignarEnConexion, reintentarPendientes } from '../services/assignment.js';
 import { SELECT_CONSULTA, consultaAutorizada, TRANSICIONES } from '../services/consultas.js';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 
 const router = Router();
 router.use(authenticate());
@@ -74,58 +68,7 @@ router.get('/:id/mensajes', ah(async (req, res) => {
   const [rows] = await pool.execute(
     `SELECT m.id, m.consulta_id, m.autor_id, m.contenido, m.created_at, u.nombre AS autor_nombre, u.apellido AS autor_apellido, u.rol AS autor_rol
        FROM mensajes m JOIN usuarios u ON u.id = m.autor_id WHERE m.consulta_id = ? ORDER BY m.id`, [id]);
-  const [adjuntos] = await pool.execute(
-    `SELECT id, mensaje_id, nombre_original, mime_type, tamanio, storage_key
-       FROM adjuntos WHERE consulta_id = ? ORDER BY id`, [id]);
-  const porMensaje = new Map();
-  await Promise.all(adjuntos.map(async (adjunto) => {
-    const lista = porMensaje.get(adjunto.mensaje_id) || [];
-    lista.push({
-      id: adjunto.id,
-      nombre: adjunto.nombre_original,
-      mime_type: adjunto.mime_type,
-      tamanio: Number(adjunto.tamanio),
-      categoria: adjunto.mime_type.startsWith('image/') ? 'foto' : 'archivo',
-      disponible: await adjuntoDisponible(adjunto.storage_key),
-    });
-    porMensaje.set(adjunto.mensaje_id, lista);
-  }));
-  for (const mensaje of rows) mensaje.adjuntos = porMensaje.get(mensaje.id) || [];
   res.json({ mensajes: rows });
-}));
-
-router.get('/:id/mensajes/adjuntos/:adjuntoId', ah(async (req, res) => {
-  const consultaId = idParam(req.params.id);
-  const adjuntoId = idParam(req.params.adjuntoId);
-  await consultaAutorizada(req.user, consultaId);
-  const [rows] = await pool.execute(
-    `SELECT storage_key, nombre_original, mime_type, tamanio
-       FROM adjuntos WHERE id = ? AND consulta_id = ?`,
-    [adjuntoId, consultaId],
-  );
-  const adjunto = rows[0];
-  if (!adjunto) throw notFound('Archivo no encontrado');
-
-  let contenido;
-  try {
-    contenido = await readFile(path.join(ADJUNTOS_DIR, adjunto.storage_key));
-  } catch (error) {
-    if (error.code === 'ENOENT') throw new HttpError(410, 'El archivo ya no está disponible; el aviso del mensaje se conserva en el chat.');
-    throw error;
-  }
-
-  const nombreSeguro = adjunto.nombre_original.replace(/[^\x20-\x7e]|["\\]/g, '_');
-  const nombreCodificado = encodeURIComponent(adjunto.nombre_original).replace(/[!'()*]/g, (char) =>
-    `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
-  const disposition = adjunto.mime_type.startsWith('image/') ? 'inline' : 'attachment';
-  res.set({
-    'Content-Type': adjunto.mime_type,
-    'Content-Length': String(adjunto.tamanio),
-    'Content-Disposition': `${disposition}; filename="${nombreSeguro}"; filename*=UTF-8''${nombreCodificado}`,
-    'Cache-Control': 'private, no-store',
-    'X-Content-Type-Options': 'nosniff',
-  });
-  res.send(contenido);
 }));
 
 router.post('/:id/mensajes', requireRole('cliente', 'tecnico'), ah(async (req, res) => {
@@ -140,45 +83,6 @@ router.post('/:id/mensajes', requireRole('cliente', 'tecnico'), ah(async (req, r
       await conn.execute("UPDATE consultas SET estado='en_proceso' WHERE id=? AND estado='esperando_cliente'", [id]);
     }
   });
-  res.status(201).json({ ok: true });
-}));
-
-router.post('/:id/mensajes/adjuntos', requireRole('cliente', 'tecnico'), parseAdjuntos, ah(async (req, res) => {
-  const id = idParam(req.params.id);
-  const { files, contenido } = req.adjuntos;
-  const c = await consultaAutorizada(req.user, id);
-  if (['finalizada', 'cancelada'].includes(c.estado)) throw conflict('La consulta está cerrada y no admite más mensajes');
-  if (!contenido && files.length === 0) throw badRequest('Escribí un mensaje o seleccioná al menos un archivo');
-
-  const guardados = await guardarAdjuntosTemporales(files);
-  try {
-    await withTransaction(async (conn) => {
-      if (contenido) {
-        await conn.execute(
-          'INSERT INTO mensajes (consulta_id, autor_id, contenido) VALUES (?, ?, ?)',
-          [id, req.user.id, contenido],
-        );
-      }
-      for (const file of guardados) {
-        const etiqueta = file.categoria === 'foto' ? 'Foto enviada' : 'Archivo enviado';
-        const [mensaje] = await conn.execute(
-          'INSERT INTO mensajes (consulta_id, autor_id, contenido) VALUES (?, ?, ?)',
-          [id, req.user.id, etiqueta],
-        );
-        await conn.execute(
-          `INSERT INTO adjuntos (mensaje_id, consulta_id, storage_key, nombre_original, mime_type, tamanio)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [mensaje.insertId, id, file.storageKey, file.nombreOriginal, file.mimeType, file.buffer.length],
-        );
-      }
-      if (req.user.rol === 'cliente' && c.estado === 'esperando_cliente') {
-        await conn.execute("UPDATE consultas SET estado='en_proceso' WHERE id=? AND estado='esperando_cliente'", [id]);
-      }
-    });
-  } catch (error) {
-    await eliminarAdjuntosTemporales(guardados);
-    throw error;
-  }
   res.status(201).json({ ok: true });
 }));
 
