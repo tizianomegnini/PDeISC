@@ -155,5 +155,5 @@ docs/FUTURO.md             Vercel, Railway, Expo / APK
 | `Falta la variable de entorno JWT_SECRET` | Complete `JWT_SECRET` en `backend\.env`. |
 | `Access denied for user` | Contraseña/usuario incorrectos en `.env`. |
 | El frontend dice “No se pudo conectar con el servidor” | El backend no está corriendo, o `VITE_API_URL` (`frontend\.env`) no coincide con su puerto. |
-| Error de CORS | En local, `CORS_ORIGINS` debe incluir `http://localhost:5173`. En Railway, incluya el origen exacto del frontend Vercel en `CORS_ORIGINS` (sin `/` al final). Para cookies entre Vercel y Railway, configure `COOKIE_SAMESITE=none` y `COOKIE_SECURE=true`. |
+| Error de CORS | `CORS_ORIGINS` en `backend\.env` debe incluir `http://localhost:5173`. |
 | Puerto 3000/5173 ocupado | Cambie `PORT` (y `VITE_API_URL`) o cierre el proceso que lo usa. |

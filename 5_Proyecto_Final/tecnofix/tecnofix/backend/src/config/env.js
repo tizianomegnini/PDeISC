@@ -10,17 +10,11 @@ function required(name) {
   return v;
 }
 
-const corsOrigins = new Set([
-  'http://localhost:5173',
-  'https://p-de-isc-6uxr.vercel.app',
-  ...(process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean),
-]);
-
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isTest,
   port: Number(process.env.PORT || 3000),
-  corsOrigins: [...corsOrigins],
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((s) => s.trim()).filter(Boolean),
   db: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
@@ -35,9 +29,7 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
   bcryptRounds: isTest ? 4 : Number(process.env.BCRYPT_ROUNDS || 12),
   cookie: {
-    sameSite: process.env.COOKIE_SAMESITE || (process.env.NODE_ENV === 'production' ? 'none' : 'lax'),
-    secure: process.env.COOKIE_SECURE === undefined
-      ? process.env.NODE_ENV === 'production'
-      : process.env.COOKIE_SECURE === 'true',
+    sameSite: process.env.COOKIE_SAMESITE || 'lax',
+    secure: process.env.COOKIE_SECURE === 'true',
   },
 };
