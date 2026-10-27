@@ -18,42 +18,39 @@ async function request(method, path, body) {
   } catch {
     throw new ApiError('No se pudo conectar con el servidor. ¿Está iniciado el backend (npm run dev)?', 0);
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
-  return data;
-}
-
-async function requestForm(path, form) {
-  let res;
-  try {
-    res = await fetch(`${BASE}${path}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'X-Requested-With': 'tecnofix' },
-      body: form,
-    });
-  } catch {
-    throw new ApiError('No se pudo conectar con el servidor. ¿Está iniciado el backend (npm run dev)?', 0);
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
-  return data;
-}
-
-async function requestBlob(path) {
-  let res;
-  try {
-    res = await fetch(`${BASE}${path}`, { credentials: 'include' });
-  } catch {
-    throw new ApiError('No se pudo descargar el archivo. Revisá tu conexión e intentá de nuevo.', 0);
-  }
-  if (!res.ok) {
+  async function requestForm(path, form) {
+    let res;
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'tecnofix' },
+        body: form,
+      });
+    } catch {
+      throw new ApiError('No se pudo conectar con el servidor. ¿Está iniciado el backend (npm run dev)?', 0);
+    }
     const data = await res.json().catch(() => ({}));
-    throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
+    if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
+    return data;
   }
-  return res.blob();
+  async function requestBlob(path) {
+    let res;
+    try {
+      res = await fetch(`${BASE}${path}`, { credentials: 'include' });
+    } catch {
+      throw new ApiError('No se pudo descargar el archivo. Revisá tu conexión e intentá de nuevo.', 0);
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
+    }
+    return res.blob();
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(data.error || `Error ${res.status}`, res.status, data.detalles);
+  return data;
 }
-
 const get = (p) => request('GET', p);
 const post = (p, b = {}) => request('POST', p, b);
 const put = (p, b) => request('PUT', p, b);

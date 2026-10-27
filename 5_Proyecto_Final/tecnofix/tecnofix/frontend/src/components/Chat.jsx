@@ -16,7 +16,6 @@ export default function Chat({ consultaId, cerrada, onSent }) {
   const { user } = useAuth();
   const toast = useToast();
   const [mensajes, setMensajes] = useState(null);
-  const [errorCarga, setErrorCarga] = useState('');
   const [texto, setTexto] = useState('');
   const [archivos, setArchivos] = useState([]);
   const [recursos, setRecursos] = useState({});
@@ -31,22 +30,8 @@ export default function Chat({ consultaId, cerrada, onSent }) {
   recursosRef.current = recursos;
   consultaIdRef.current = consultaId;
 
-  const cargar = useCallback(async () => {
-    try {
-      const resultado = await consultasApi.mensajes(consultaId);
-      setMensajes(resultado.mensajes);
-      setErrorCarga('');
-    } catch (error) {
-      setErrorCarga(error.message || 'Ocurrió un error inesperado.');
-    }
-  }, [consultaId]);
-  useEffect(() => {
-    setMensajes(null);
-    setErrorCarga('');
-    void cargar();
-    const intervalo = setInterval(() => { void cargar(); }, 8000);
-    return () => clearInterval(intervalo);
-  }, [cargar]);
+  const cargar = () => consultasApi.mensajes(consultaId).then((r) => setMensajes(r.mensajes)).catch(() => {});
+  useEffect(() => { cargar(); const t = setInterval(cargar, 8000); return () => clearInterval(t); }, [consultaId]); // eslint-disable-line
   useEffect(() => { fin.current?.scrollIntoView({ block: 'nearest' }); }, [mensajes?.length, recursos]);
   const actualizarRecurso = useCallback((adjuntoId, recurso) => {
     const actualizados = { ...recursosRef.current, [adjuntoId]: recurso };
@@ -138,13 +123,7 @@ export default function Chat({ consultaId, cerrada, onSent }) {
         <span className="chat-live" aria-label="Mensajes actualizados automáticamente"><span /> Actualización automática</span>
       </header>
       <div className="chat">
-        {mensajes === null && !errorCarga && <p className="loading">Cargando mensajes…</p>}
-        {mensajes === null && errorCarga && <div className="chat-empty" role="alert">
-          <strong>No se pudieron cargar los mensajes</strong>
-          <p>{errorCarga}</p>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => { void cargar(); }}>Reintentar</button>
-        </div>}
-        {mensajes !== null && errorCarga && <p className="loading" role="status">No se pudieron actualizar los mensajes. Se volverá a intentar automáticamente.</p>}
+        {mensajes === null && <p className="loading">Cargando mensajes…</p>}
         {mensajes?.length === 0 && <div className="chat-empty"><span aria-hidden="true">✉</span><strong>La conversación empieza acá</strong><p>Mandale un mensaje al técnico si querés agregar detalles o hacer una pregunta.</p></div>}
         {mensajes?.map((m) => (
           <div key={m.id} className={`msg ${m.autor_id === user.id ? 'mine' : ''}`}>
